@@ -206,10 +206,14 @@ the `m-ezekiel/GeometersSketchpad` repository (e.g. `polygon_reflections.gsp`,
     sqrt((x(C)-x(A))^2+(y(C)-y(A))^2) / sqrt((x(B)-x(A))^2+(y(B)-y(A))^2)`.
   A `t33` whose marker is a `t47` (often wrapped in a `t48` label) references the emitted numeric object.
   Unsupported `t47` parent shapes are still skipped rather than guessed.
-- **`t21`** is a fixed-angle point rotation (`params = (-sinθ, cosθ, θ, 0)` + trailing garbage) with
-  **no center parent and no stored center** — Sketchpad's internal "rotate about the implicit/marked
-  center". It has no JavaSketchpad spec, so the center is unrecoverable from the file and the object
-  is skipped. `t30` stores the ratio in `params[0]`; `t27` stores `(-sinθ, cosθ, θ, 0)` and the angle
+- **`t21`** **was identified on 2026-10-02: it is a polar translation (`PolarTranslation`), not a
+  rotation.** tag 2003 (60 B): `+4`=−sinθ, `+12`=cosθ, `+20`=θ (display only, unreliable; always use
+  `atan2(-p[0], p[1])`), `+32`=**translation distance d1 (in file coordinates)**, `+40`=the same
+  distance in centimetres. Semantics: `image = parent + d1·(cosθ, −sinθ)` (file frame is y-down).
+  The earlier guess "rotation about the implicit/marked centre" is disproven by ground truth
+  (`mark_center_rotate_fixed.gsp` yields `t27`). **The object is still skipped; decoding/emission
+  is pending.**
+  `t30` stores the ratio in `params[0]`; `t27` stores `(-sinθ, cosθ, θ, 0)` and the angle
   is derived as `atan2(-p[0], p[1])·180/π` (GSP is y-down, GeoGebra y-up).
 
 ## JavaSketchpad text (ground truth for text/function/measure)
