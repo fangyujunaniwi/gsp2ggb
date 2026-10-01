@@ -5,7 +5,7 @@
 > **接手先跑（自检，项目根 = 本目录）**：
 > ```powershell
 > node test/smoke.js                    # 应输出 SMOKE PASSED（无需语料）
-> node tools/emitstats.js "<语料根>"    # 本机实测：files=1478 objects=407095 emitted=130827 rate=32.14%
+> node tools/emitstats.js "<语料根>"    # 本机实测：files=1478 objects=407095 emitted=132061 rate=32.44%
 > node tools/exprcov.js  "<语料根>"     # 本机实测：2311 解码 57370/57607 = 99.6%
 > ```
 > 语料按本机实际路径传入（开发机为 `D:\Program Files (x86)\Sketchpad5`），或设 `GSP_DIR` 环境变量，
@@ -220,8 +220,12 @@
     因为 `AlgoPointOnPath` 对带参数的点 `isChangeable()` 恒 false，`StartAnimation` 会被拒
     （真机报「参数不符合规则: 点 C」）。坐标在转换期由 `gspPosXY` 解析端点算出；算不出时退回
     `Point(线段, φ)`（几何正确、不可动画）。直线/派生直线上仍用坐标式（GSP 的 φ 参照系未必是该直线自身定义点）。
-  - `t15` 圆上点：GSP 存的是 **(cos,sin) 单位方向**（y 向下），原代码误当作角度取 `cos/sin`，已修正；
-    并扩展到 `t3/t4/t64` 三类圆路径。
+  - `t15` 圆上点：GSP 存两种形式——**(cos,sin) 单位方向**（2 个参数，y 向下）或**单个角度**
+    （1 个参数，单位未确认）。前者在圆心/半径可求解时发射 `Point(圆)` + 显式 `<coords>`，
+    位置 = 圆心 + 半径·(cos,sin)（y 向下；对照 CFR `PointOnCircle.Constrain`：
+    `x=cx+cos·r, y=cy+sin·r`，且本机语料 265/265 单位长）；后者（或位置不可求解时）只发
+    `Point(圆)`，保留“圆上自由点”的约束与可动画性，初始位置交给 GeoGebra，**不猜角度单位**。
+    （此前把单角度当弧度取 `cos/sin`，对这些点其实是错的。）
   - `t15` **变换后线段**上的点：仿射变换保持参数分数 φ，且经查 GeoGebra 手册，
     `Point(线段, φ)` 的参数在 `AB` 上恰为 φ（与 GSP 一致，而**直线**的参数被非线性重映射，
     不可直接用）→ 变换后线段路径输出 `Point(路径, t)`（新增 ~640 对象）。
@@ -267,6 +271,9 @@
   **随后修正动画根因（`Point(线段,φ)` → `Point(线段)`+`<coords>`；见上「关键事实」#10）后为
   `emitted=130827 rate=32.14%`**——减少的 367 个都是**目标根本不可动画**（圆/函数路径上的点、GSP 参数）
   的动画按钮：它们在旧输出里点了必弹「参数不符合规则」，如今如实跳过。
+  **再落「圆上点 → `Point(圆)`」后 `emitted=132061 rate=32.44%`**（+1,234）：圆上点从“自由坐标式”
+  改为真正的圆上自由点，`animate button without animatable target` 1,742 → 1,616（**多恢复 126 个
+  动画按钮**），`point on unsupported path` 5,208 → 4,643（−565）。
   `exprcov` 解码 57370/57607=99.6%。
   剩余瓶颈（按“根因杠杆”排序）：① `t21` 13,589（中心不可恢复，见下）② `t33`/`t29`
   12,523/5,074（marker 无 2311 或依赖被跳过对象级联）③ `point on unsupported path` 与未知类型

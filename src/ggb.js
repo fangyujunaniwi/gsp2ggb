@@ -239,6 +239,25 @@ function pxOfPoint(o, byId, depth) {
   return null;
 }
 
+// Pixel radius of a GSP circle (t64 family): either the distance center->on-point or the
+// length of the radius segment.  Returns null when it cannot be resolved numerically.
+function circleRadiusPx(circ, byId, depth) {
+  if (!circ || (depth || 0) > 24) return null;
+  const center = byId.get((circ.parents || [])[0]);
+  const p2 = byId.get((circ.parents || [])[1]);
+  if (!center || !p2) return null;
+  if (SEG_KINDS.has(p2.kind) && p2.parents.length === 2) {
+    const a = gspPosXY(byId.get(p2.parents[0]), byId, (depth || 0) + 1);
+    const b = gspPosXY(byId.get(p2.parents[1]), byId, (depth || 0) + 1);
+    if (a && b) return Math.hypot(b.x - a.x, b.y - a.y);
+    return null;
+  }
+  const c = gspPosXY(center, byId, (depth || 0) + 1);
+  const p = gspPosXY(p2, byId, (depth || 0) + 1);
+  if (c && p) return Math.hypot(p.x - c.x, p.y - c.y);
+  return null;
+}
+
 // Numeric position (GSP logical, y-down) of a point-like object.  Used to seed a
 // GeoGebra point that lives on a path: GeoGebra stores such a point's position in
 // <coords> and restores its path parameter from them (GeoPoint.setCoords ->
@@ -266,8 +285,21 @@ function gspPosXY(o, byId, depth) {
   }
   if (o.kind === 'pointOnPath') {
     const path = byId.get(o.parents[0]);
-    const t = o.params && o.params.length ? o.params[0] : null;
-    if (!path || t === null) return null;
+    if (!path) return null;
+    const ps = o.params || [];
+    // circle: GSP stores a two-parameter unit direction (cos,sin) in its y-down frame
+    // (cf. jsp5.jar PointOnCircle.Constrain: x=cx+cos·r, y=cy+sin·r) -> center + r·(cos,sin).
+    if (CIRC_KINDS.has(path.kind) && path.parents.length === 2 && ps.length >= 2) {
+      const n = Math.hypot(ps[0], ps[1]);
+      if (n > 0.9 && n < 1.1) {
+        const c = gspPosXY(byId.get(path.parents[0]), byId, (depth || 0) + 1);
+        const r = circleRadiusPx(path, byId, (depth || 0) + 1);
+        if (c && r != null) return { x: c.x + r * ps[0], y: c.y + r * ps[1] };
+      }
+      return null;
+    }
+    const t = ps.length ? ps[0] : null;
+    if (t === null) return null;
     if (SEG_KINDS.has(path.kind) && path.parents.length === 2) {
       const a = gspPosXY(byId.get(path.parents[0]), byId, (depth || 0) + 1);
       const b = gspPosXY(byId.get(path.parents[1]), byId, (depth || 0) + 1);
@@ -661,26 +693,29 @@ function planOf(o, byId) {
             args: [path.id], noAnim: true, warn: 'point on transformed polygon (offset/n)' };
         }
       }
-      // circle path: GSP stores the position as a unit direction (cos,sin) in y-down
-      // coordinates (or, occasionally, a single angle). radius comes from the circle.
-      if (path && CIRC_KINDS.has(path.kind) && path.parents.length === 2 && t !== null) {
-        const c = R(path.parents[0]);
-        const rad = R(path.parents[1]);
-        const p2 = byId.get(path.parents[1]);
-        let radiusExpr;
-        if (path.kind === 'circleOn' || (path.kind === 'circleRadiusObj' && isPointish(p2)))
-          radiusExpr = 'Distance(' + c + ',' + rad + ')';
-        else if (path.kind === 'circleRadiusSeg' || (p2 && SEG_KINDS.has(p2.kind)))
-          radiusExpr = 'Length(' + rad + ')';
-        else return skip('point on unsupported path (falls back nowhere)');
+      // circle path: the two-parameter form is a unit direction (cos,sin) in GSP's y-down
+      // frame (verified: unit-length for every corpus sample, and jsp5.jar
+      // PointOnCircle.Constrain uses x=cx+cos·r, y=cy+sin·r).  Emit a real free-on-path
+      // point — Point(circle) + <coords> — so it stays constrained to (and animatable
+      // along) the circle.  When no trustworthy position is available (single-parameter
+      // angle of unverified unit, or an unresolvable center/radius) keep the relation as
+      // a bare Point(circle) and leave the initial parameter to GeoGebra rather than guess.
+      if (path && CIRC_KINDS.has(path.kind) && path.parents.length === 2) {
         const ps = o.params || [];
-        let dirExpr;
-        if (ps.length >= 2) dirExpr = '(' + fmt(ps[0]) + ',' + fmt(-ps[1]) + ')';   // stored unit direction
-        else dirExpr = '(cos(' + fmt(t) + '),-sin(' + fmt(t) + '))';               // stored angle
-        return { elem: 'point',
-          exprTpl: '(' + c + ') + ' + radiusExpr + ' * ' + dirExpr,
-          args: [path.id].concat(path.parents),
-          warn: 'point-on-circle param: y-down direction assumed' };
+        const n = ps.length >= 2 ? Math.hypot(ps[0], ps[1]) : 0;
+        const unitDir = ps.length >= 2 && n > 0.9 && n < 1.1;
+        const xy = unitDir ? gspPosXY(o, byId, 0) : null;
+        if (xy) return { elem: 'point', exprTpl: 'Point(' + R(path.id) + ')',
+          args: [path.id], pathXY: toPt(xy), warn: 'point on circle as free-on-path point' };
+        // No trustworthy position: keep the construction relation (a free point on the
+        // circle, hence animatable) and let GeoGebra choose the initial path parameter
+        // instead of guessing.  The single-parameter form is an absolute angle whose unit
+        // is not yet verified against truth; the two-parameter form may simply have an
+        // unresolvable center/radius here.
+        return { elem: 'point', exprTpl: 'Point(' + R(path.id) + ')', args: [path.id],
+          warn: unitDir
+            ? 'point on circle: position not computable (initial position left to GeoGebra)'
+            : 'point on circle: stored angle unit unverified (initial position left to GeoGebra)' };
       }
       // function plot (t72): the plot's tag-2306 record stores the x-domain [xmin, xmax] in
       // frame units and the point parameter is the fraction along it, so x = xmin + t·(xmax-xmin)

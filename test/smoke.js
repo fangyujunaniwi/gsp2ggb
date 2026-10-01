@@ -97,6 +97,55 @@ if (fs.existsSync(btnSrc)) {
     Math.abs(C.y - (A.y + PHI * (B.y - A.y))) < 1e-6, JSON.stringify(C));
 }
 
+// --- point on a circle (t15): the two-parameter form is a (cos,sin) unit direction in
+//     GSP's y-down frame (jsp5.jar PointOnCircle.Constrain).  It must become a real
+//     free-on-path point — Point(circle) + <coords> — that lies on its circle.
+//     ref-ctrl/angle_bisector.gsp is a bundled control sketch with two such points. ---
+const circSrc = path.join(root, 'ref-ctrl', 'angle_bisector.gsp');
+if (fs.existsSync(circSrc)) {
+  const cx = unzip(irToGgb(gspToIR(fs.readFileSync(circSrc))).buf).get('geogebra.xml').toString('utf8');
+  const cExprOf = label => {
+    const m = cx.match(new RegExp('<expression label="' + label + '" exp="([^"]*)"'));
+    return m ? m[1] : null;
+  };
+  const cPtOf = label => {
+    const m = cx.match(new RegExp('<element type="point" label="' + label + '">[\\s\\S]*?<coords x="([^"]*)" y="([^"]*)"'));
+    return m ? { x: +m[1], y: +m[2] } : null;
+  };
+  const conics = new Set();
+  for (const m of cx.matchAll(/<element type="conic" label="([^"]+)"/g)) conics.add(m[1]);
+  const onCircle = [];
+  for (const m of cx.matchAll(/<expression label="([^"]+)" exp="Point\(([^)]+)\)"/g)) {
+    if (conics.has(m[2])) onCircle.push({ pt: m[1], circ: m[2] });
+  }
+  check('circle points become free-on-path Point(circle)',
+    onCircle.length >= 2, onCircle.map(o => o.pt + '=' + cExprOf(o.pt)).join(' '));
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+  const circleGeom = circ => {
+    const m = (cExprOf(circ) || '').match(/^Circle\(([^,]+),([^)]+)\)$/);
+    if (!m) return null;
+    const c = cPtOf(m[1]);
+    if (!c) return null;
+    const sm = (cExprOf(m[2]) || '').match(/^Segment\(([^,]+),([^)]+)\)$/);
+    if (sm) { const a = cPtOf(sm[1]), b = cPtOf(sm[2]); if (a && b) return { c, r: dist(a, b) }; }
+    const p = cPtOf(m[2]);
+    return p ? { c, r: dist(c, p) } : null;
+  };
+  const withCoords = onCircle.filter(o => cPtOf(o.pt));
+  let allOn = withCoords.length >= 2;
+  const bad = [];
+  for (const o of withCoords) {
+    const g = circleGeom(o.circ), p = cPtOf(o.pt);
+    if (!g || Math.abs(dist(g.c, p) - g.r) > 1e-6) { allOn = false; bad.push(o.pt); }
+  }
+  check('unit-direction circle points keep their position via <coords> (on the circle)',
+    allOn, bad.join(',') || ('withCoords=' + withCoords.length));
+  const relationOnly = onCircle.filter(o => !cPtOf(o.pt));
+  check('angle-form circle points stay a bare Point(circle) (relation kept, no guessed position)',
+    relationOnly.length > 0 && relationOnly.every(o => cExprOf(o.pt) === 'Point(' + o.circ + ')'),
+    'relation-only=' + relationOnly.map(o => o.pt).join(','));
+}
+
 // --- TUI helpers (src/tui-util.js) and job pipeline (bin/tui.js) ---
 check('tui: recognises .gsp/.ggb', U.isConvertible('a.gsp') && U.isConvertible('B.GGB') && !U.isConvertible('a.txt'));
 check('tui: default output swaps the extension',
