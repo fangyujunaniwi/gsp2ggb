@@ -1,0 +1,2 @@
+﻿const fs=require('fs'),path=require('path');const {parseRecords}=require('../src/gsp');let fsx=[];function w(d){for(const e of fs.readdirSync(d,{withFileTypes:true})){let p=path.join(d,e.name);if(e.isDirectory())w(p);else if(/\.gsp$/i.test(e.name))fsx.push(p)}}w(process.argv[2]);let weird=new Map(),total=0;for(const f of fsx){for(const r of parseRecords(fs.readFileSync(f))){total++;if(r.tag>10000)weird.set(r.tag,(weird.get(r.tag)||0)+1)}}console.log({files:fsx.length,records:total,weird:[...weird].sort((a,b)=>b[1]-a[1]).slice(0,30)});
+

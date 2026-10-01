@@ -1,0 +1,622 @@
+<?xml version="1.0" encoding="utf-8"?>
+<geogebra format="4.2" id="gspconv-1a0dd019e3c-3757f2fe"  xsi:noNamespaceSchemaLocation="http://www.geogebra.org/ggb.xsd" xmlns="" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" >
+<gui>
+	<window width="1000" height="800" />
+	<perspectives>
+<perspective id="tmp">
+	<panes>
+		<pane location="" divider="Infinity" orientation="1" />
+	</panes>
+	<views>
+		<view id="4" toolbar="0 || 2020 , 2021 , 2022 , 66 || 2001 , 2003 , 2002 , 2004 , 2005 || 2040 , 2041 , 2042 , 2044 , 2043" visible="false" inframe="false" stylebar="false" location="1,1" size="300" window="100,100,600,400" />
+		<view id="8" toolbar="1001 | 1002 | 1003  || 1005 | 1004 || 1006 | 1007 || 1008 1009" visible="false" inframe="false" stylebar="false" location="1,3" size="300" window="100,100,600,400" />
+		<view id="1" visible="true" inframe="false" stylebar="false" location="1" size="700" window="100,100,600,400" />
+		<view id="2" visible="true" inframe="false" stylebar="false" location="3" size="300" window="100,100,250,400" />
+		<view id="16" visible="false" inframe="true" stylebar="false" location="1" size="150" window="50,50,500,500" />
+		<view id="32" visible="false" inframe="true" stylebar="true" location="1" size="150" window="50,50,500,500" />
+		<view id="64" visible="false" inframe="true" stylebar="false" location="1" size="150" window="50,50,500,500" />
+	</views>
+	<toolbar show="true" items="0 39 59 || 1 501 5 19 67 72 | 2 15 45 18 , 7 37 | 4 3 8 9 , 13 44 , 58 , 47 || 16 51 64 70 65 | 10 34 53 11 , 24  20 22 , 21 23 | 55 56 57 , 12 || 36 46 , 38 49 50 , 71 | 30 29 54 32 31 33 | 17 26 62 , 14 66 68 | 25 52 60 61 || 40 41 42 , 27 28 35 , 6" />
+	<input show="true" cmd="true" top="false" />
+</perspective>
+	</perspectives>
+	<labelingStyle  val="3"/>
+	<font  size="12"/>
+	<graphicsSettings javaLatexFonts="false"/>
+	<consProtColumns  col0="true" col1="true" col2="false" col3="true" col4="false" col5="true" col6="true" col7="false"/>
+	<consProtocol useColors="true" addIcons="false" showOnlyBreakpoints="false"/>
+</gui>
+<euclidianView>
+	<size  width="1000" height="800"/>
+	<coordSystem xZero="-77.5107296137" yZero="-28.4978540773" scale="68.669527897" yscale="68.669527897"/>
+	<evSettings axes="true" grid="false" gridIsBold="false" pointCapturing="3" rightAngleStyle="2" checkboxSize="13" gridType="0"/>
+	<bgColor r="255" g="255" b="255"/>
+	<axesColor r="0" g="0" b="0"/>
+	<gridColor r="192" g="192" b="192"/>
+	<lineStyle axes="1" grid="10"/>
+	<axis id="0" show="true" label="" unitLabel="" tickStyle="1" showNumbers="true"/>
+	<axis id="1" show="true" label="" unitLabel="" tickStyle="1" showNumbers="true"/>
+</euclidianView>
+<kernel>
+	<continuous val="false"/>
+	<decimals val="2"/>
+	<angleUnit val="degree"/>
+	<algebraStyle val="0"/>
+	<coordStyle val="0"/>
+	<angleFromInvTrig val="false"/>
+</kernel>
+<scripting blocked="false" disabled="false"/>
+<construction title="" author="" date="">
+<element type="point" label="A">
+	<show object="true" label="true"/>
+	<objColor r="255" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<coords x="1.58" y="-1.58" z="1"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<element type="point" label="B">
+	<show object="true" label="true"/>
+	<objColor r="0" g="255" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<coords x="9.3" y="-1.58" z="1"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="O" exp="Segment(A,B)" />
+<element type="segment" label="O">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<lineStyle thickness="3" type="0" typeHidden="1" opacity="255"/>
+</element>
+<expression label="B'" exp="Dilate(B,0.111111111111,A)" />
+<element type="point" label="B'">
+	<show object="true" label="false"/>
+	<objColor r="0" g="255" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="O_2" exp="Translate(B',Vector(A,B'))" />
+<element type="point" label="O_2">
+	<show object="true" label="false"/>
+	<objColor r="0" g="255" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="O_3" exp="Translate(O_2,Vector(A,B'))" />
+<element type="point" label="O_3">
+	<show object="true" label="false"/>
+	<objColor r="0" g="255" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="O_4" exp="Translate(O_3,Vector(A,B'))" />
+<element type="point" label="O_4">
+	<show object="true" label="false"/>
+	<objColor r="0" g="255" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="O_5" exp="Translate(O_4,Vector(A,B'))" />
+<element type="point" label="O_5">
+	<show object="true" label="false"/>
+	<objColor r="0" g="255" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="O_6" exp="Translate(O_5,Vector(A,B'))" />
+<element type="point" label="O_6">
+	<show object="true" label="false"/>
+	<objColor r="0" g="255" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="O_7" exp="Translate(O_6,Vector(A,B'))" />
+<element type="point" label="O_7">
+	<show object="true" label="false"/>
+	<objColor r="0" g="255" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="O_8" exp="Translate(O_7,Vector(A,B'))" />
+<element type="point" label="O_8">
+	<show object="true" label="false"/>
+	<objColor r="0" g="255" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="D" exp="(A) + 0.888888888889 * ((B) - (A))" />
+<element type="point" label="D">
+	<show object="true" label="false"/>
+	<objColor r="255" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<element type="numeric" label="O_9">
+	<show object="true" label="true"/>
+	<objColor r="0" g="0" b="255" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<value val="0"/>
+	<symbolic val="true" />
+</element>
+<element type="numeric" label="O_10">
+	<show object="true" label="true"/>
+	<objColor r="0" g="0" b="255" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<value val="0"/>
+	<symbolic val="true" />
+</element>
+<expression label="O_11" exp="Rotate(B,-9090°,A)" />
+<element type="point" label="O_11">
+	<show object="true" label="false"/>
+	<objColor r="0" g="255" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="O_12" exp="Rotate(O,-9090°,A)" />
+<element type="segment" label="O_12">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<lineStyle thickness="3" type="0" typeHidden="1" opacity="255"/>
+</element>
+<expression label="B''" exp="Rotate(B',-9090°,A)" />
+<element type="point" label="B''">
+	<show object="true" label="false"/>
+	<objColor r="0" g="255" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="O_13" exp="Rotate(O_2,-9090°,A)" />
+<element type="point" label="O_13">
+	<show object="true" label="false"/>
+	<objColor r="0" g="255" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="O_14" exp="Rotate(O_3,-9090°,A)" />
+<element type="point" label="O_14">
+	<show object="true" label="false"/>
+	<objColor r="0" g="255" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="O_15" exp="Rotate(O_4,-9090°,A)" />
+<element type="point" label="O_15">
+	<show object="true" label="false"/>
+	<objColor r="0" g="255" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="O_16" exp="Rotate(O_5,-9090°,A)" />
+<element type="point" label="O_16">
+	<show object="true" label="false"/>
+	<objColor r="0" g="255" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="O_17" exp="Rotate(O_6,-9090°,A)" />
+<element type="point" label="O_17">
+	<show object="true" label="false"/>
+	<objColor r="0" g="255" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="O_18" exp="Rotate(O_7,-9090°,A)" />
+<element type="point" label="O_18">
+	<show object="true" label="false"/>
+	<objColor r="0" g="255" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="O_19" exp="Rotate(O_8,-9090°,A)" />
+<element type="point" label="O_19">
+	<show object="true" label="false"/>
+	<objColor r="0" g="255" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<element type="numeric" label="O_20">
+	<show object="true" label="true"/>
+	<objColor r="0" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<value val="0"/>
+	<symbolic val="true" />
+</element>
+<element type="numeric" label="O_21">
+	<show object="true" label="true"/>
+	<objColor r="0" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<value val="0"/>
+	<symbolic val="true" />
+</element>
+<expression label="O_22" exp="PerpendicularLine(O_8,O)" />
+<element type="line" label="O_22">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<lineStyle thickness="3" type="0" typeHidden="1" opacity="255"/>
+</element>
+<expression label="O_23" exp="PerpendicularLine(B',O)" />
+<element type="line" label="O_23">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<lineStyle thickness="3" type="0" typeHidden="1" opacity="255"/>
+</element>
+<expression label="O_24" exp="PerpendicularLine(O_7,O)" />
+<element type="line" label="O_24">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<lineStyle thickness="3" type="0" typeHidden="1" opacity="255"/>
+</element>
+<expression label="O_25" exp="PerpendicularLine(O_6,O)" />
+<element type="line" label="O_25">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<lineStyle thickness="3" type="0" typeHidden="1" opacity="255"/>
+</element>
+<expression label="O_26" exp="PerpendicularLine(O_5,O)" />
+<element type="line" label="O_26">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<lineStyle thickness="3" type="0" typeHidden="1" opacity="255"/>
+</element>
+<expression label="O_27" exp="PerpendicularLine(O_4,O)" />
+<element type="line" label="O_27">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<lineStyle thickness="3" type="0" typeHidden="1" opacity="255"/>
+</element>
+<expression label="O_28" exp="PerpendicularLine(O_3,O)" />
+<element type="line" label="O_28">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<lineStyle thickness="3" type="0" typeHidden="1" opacity="255"/>
+</element>
+<expression label="O_29" exp="PerpendicularLine(O_2,O)" />
+<element type="line" label="O_29">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<lineStyle thickness="3" type="0" typeHidden="1" opacity="255"/>
+</element>
+<expression label="O_30" exp="PerpendicularLine(B'',O_12)" />
+<element type="line" label="O_30">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<lineStyle thickness="3" type="0" typeHidden="1" opacity="255"/>
+</element>
+<expression label="O_31" exp="PerpendicularLine(O_13,O_12)" />
+<element type="line" label="O_31">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<lineStyle thickness="3" type="0" typeHidden="1" opacity="255"/>
+</element>
+<expression label="O_32" exp="PerpendicularLine(O_14,O_12)" />
+<element type="line" label="O_32">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<lineStyle thickness="3" type="0" typeHidden="1" opacity="255"/>
+</element>
+<expression label="O_33" exp="PerpendicularLine(O_15,O_12)" />
+<element type="line" label="O_33">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<lineStyle thickness="3" type="0" typeHidden="1" opacity="255"/>
+</element>
+<expression label="O_34" exp="PerpendicularLine(O_16,O_12)" />
+<element type="line" label="O_34">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<lineStyle thickness="3" type="0" typeHidden="1" opacity="255"/>
+</element>
+<expression label="O_35" exp="PerpendicularLine(O_17,O_12)" />
+<element type="line" label="O_35">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<lineStyle thickness="3" type="0" typeHidden="1" opacity="255"/>
+</element>
+<expression label="O_36" exp="PerpendicularLine(O_18,O_12)" />
+<element type="line" label="O_36">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<lineStyle thickness="3" type="0" typeHidden="1" opacity="255"/>
+</element>
+<expression label="O_37" exp="PerpendicularLine(O_19,O_12)" />
+<element type="line" label="O_37">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<lineStyle thickness="3" type="0" typeHidden="1" opacity="255"/>
+</element>
+<expression label="O_38" exp="Segment(A,D)" />
+<element type="segment" label="O_38">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<lineStyle thickness="3" type="0" typeHidden="1" opacity="255"/>
+</element>
+<expression label="O_39" exp="Polygon(B',O,O_2,O_3,O_4,O_5,O_6,O_7,O_8,B,B'',O_13,O_14,O_15,O_16,O_17,O_18,O_19,O_11,O_12)" />
+<element type="polygon" label="O_39">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<lineStyle thickness="3" type="0" typeHidden="1" opacity="255"/>
+	<fillType type="0" opacity="128"/>
+</element>
+<expression label="G" exp="Intersect(O_38,O_23)" />
+<element type="point" label="G">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="255" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="H" exp="Intersect(O_38,O_29)" />
+<element type="point" label="H">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="255" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="I_" exp="Intersect(O_38,O_28)" />
+<element type="point" label="I_">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="255" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="J" exp="Intersect(O_38,O_27)" />
+<element type="point" label="J">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="255" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="K" exp="Intersect(O_38,O_26)" />
+<element type="point" label="K">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="255" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="L" exp="Intersect(O_38,O_25)" />
+<element type="point" label="L">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="255" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="M" exp="Intersect(O_38,O_24)" />
+<element type="point" label="M">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="255" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="N" exp="Intersect(O_38,O_22)" />
+<element type="point" label="N">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="255" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="O_40" exp="Polygon(O_22,O_23,O_24,O_25,O_26,O_27,O_28,O_29,O_30,O_31,O_32,O_33,O_34,O_35,O_36,O_37)" />
+<element type="polygon" label="O_40">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<lineStyle thickness="3" type="0" typeHidden="1" opacity="255"/>
+	<fillType type="0" opacity="128"/>
+</element>
+<element type="numeric" label="O_41">
+	<show object="true" label="true"/>
+	<objColor r="0" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<value val="0"/>
+	<symbolic val="true" />
+</element>
+<element type="numeric" label="O_42">
+	<show object="true" label="true"/>
+	<objColor r="0" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<value val="0"/>
+	<symbolic val="true" />
+</element>
+<element type="numeric" label="O_43">
+	<show object="true" label="true"/>
+	<objColor r="255" g="128" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<value val="0"/>
+	<symbolic val="true" />
+</element>
+<element type="numeric" label="O_44">
+	<show object="true" label="true"/>
+	<objColor r="255" g="128" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<value val="0"/>
+	<symbolic val="true" />
+</element>
+<element type="point" label="X_">
+	<show object="true" label="true"/>
+	<objColor r="255" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<coords x="1.1" y="-10.9" z="1"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<element type="point" label="O_45">
+	<show object="true" label="true"/>
+	<objColor r="255" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<coords x="15.72" y="-10.9" z="1"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="O_46" exp="Segment(X_,O_45)" />
+<element type="segment" label="O_46">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<lineStyle thickness="3" type="0" typeHidden="1" opacity="255"/>
+</element>
+<expression label="W" exp="(X_) + 0.0109439124487 * ((O_45) - (X_))" />
+<element type="point" label="W">
+	<show object="true" label="false"/>
+	<objColor r="255" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="Y_" exp="(X_) + 0 * ((O_45) - (X_))" />
+<element type="point" label="Y_">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="255" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="O_47" exp="Translate(Y_,Vector(X_,W))" />
+<element type="point" label="O_47">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="255" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="O_48" exp="&quot;累積分數&quot;" />
+<element type="text" label="O_48">
+	<show object="true" label="false"/>
+	<objColor r="255" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<font serif="false" sizeM="1.1428571428571428" size="2" style="0"/>
+</element>
+<element type="numeric" label="O_49">
+	<show object="true" label="true"/>
+	<objColor r="0" g="0" b="255" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<value val="0"/>
+	<symbolic val="true" />
+</element>
+<element type="numeric" label="O_50">
+	<show object="true" label="true"/>
+	<objColor r="0" g="0" b="255" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<value val="0"/>
+	<symbolic val="true" />
+</element>
+<expression label="O_51" exp="&quot;http://exjh.com&quot;" />
+<element type="text" label="O_51">
+	<show object="true" label="false"/>
+	<objColor r="0" g="128" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<font serif="false" sizeM="1.1428571428571428" size="2" style="0"/>
+</element>
+</construction>
+</geogebra>

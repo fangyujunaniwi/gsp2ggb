@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8"?>
+<geogebra format="4.2" version="4.2.16.0" id="0c628f50-1f4f-40eb-b72c-f399038a46f9"  xsi:noNamespaceSchemaLocation="http://www.geogebra.org/ggb.xsd" xmlns="" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" >
+<gui>
+	<window width="907" height="585" />
+	<perspectives>
+<perspective id="tmp">
+	<panes>
+		<pane location="" divider="0.0" orientation="0" />
+	</panes>
+	<views>
+		<view id="4" toolbar="0 59 || 2020 , 2021 , 2022 , 66 || 2001 , 2003 , 2002 , 2004 , 2005 || 2040 , 2041 , 2042 , 2044 , 2043" visible="false" inframe="false" stylebar="false" location="2,2" size="200" window="0,0,400,400" />
+		<view id="1" visible="true" inframe="false" stylebar="true" location="2" size="525" window="0,0,400,400" />
+		<view id="2" visible="false" inframe="false" stylebar="false" location="0" size="200" window="0,0,200,400" />
+		<view id="8" visible="false" inframe="false" stylebar="false" location="1" size="150" window="50,50,500,500" />
+		<view id="16" visible="false" inframe="false" stylebar="false" location="1" size="150" window="50,50,500,500" />
+		<view id="32" visible="false" inframe="false" stylebar="true" location="1" size="150" window="50,50,500,500" />
+		<view id="64" visible="false" inframe="true" stylebar="true" location="1" size="150" window="50,50,500,500" />
+		<view id="4097" visible="false" inframe="true" stylebar="true" location="1" size="150" window="50,50,500,500" />
+		<view id="70" visible="false" inframe="true" stylebar="true" location="1" size="150" window="50,50,500,500" />
+	</views>
+	<toolbar show="true" items="0 39 59 | 1 501 67 , 5 19 , 72 | 2 15 45 , 18 65 , 7 37 | 4 3 8 9 , 13 44 , 58 , 47 | 16 51 64 , 70 | 10 34 53 11 , 24  20 22 , 21 23 | 55 56 57 , 12 | 36 46 , 38 49 50 , 71 | 30 29 54 32 31 33 | 17 26 62 73 , 14 66 68 | 25 52 60 61 | 40 41 42 , 27 28 35 , 6" position="0" help="false" />
+	<input show="false" cmd="true" top="false" />
+	<dockBar show="false" east="false" />
+</perspective>
+	</perspectives>
+	<labelingStyle  val="3"/>
+	<font  size="14"/>
+	<graphicsSettings javaLatexFonts="false"/>
+</gui>
+<euclidianView>
+	<size  width="891" height="498"/>
+	<coordSystem xZero="370.9536365103996" yZero="270.01519825329893" scale="72.17001449392654" yscale="72.17001449392656"/>
+	<evSettings axes="true" grid="false" gridIsBold="false" pointCapturing="1" rightAngleStyle="2" checkboxSize="13" gridType="0"/>
+	<bgColor r="255" g="255" b="255"/>
+	<axesColor r="64" g="64" b="64"/>
+	<gridColor r="192" g="192" b="192"/>
+	<lineStyle axes="1" grid="10"/>
+	<axis id="0" show="true" label="" unitLabel="" tickStyle="1" showNumbers="true" tickDistance="1.0"/>
+	<axis id="1" show="true" label="" unitLabel="" tickStyle="1" showNumbers="true" tickDistance="1.0"/>
+	<grid distX="1.0" distY="1.0" distTheta="0.5235987755982988"/>
+</euclidianView>
+<kernel>
+	<continuous val="true"/>
+	<usePathAndRegionParameters val="true"/>
+	<decimals val="2"/>
+	<angleUnit val="degree"/>
+	<algebraStyle val="0"/>
+	<coordStyle val="0"/>
+	<angleFromInvTrig val="false"/>
+</kernel>
+<scripting blocked="false" disabled="false"/>
+<construction title="Parameteruntersuchungen" author="" date="">
+<element type="numeric" label="a">
+	<value val="1.0"/>
+	<show object="true" label="true"/>
+	<objColor r="153" g="0" b="0" alpha="0.0"/>
+	<layer val="0"/>
+	<labelMode val="1"/>
+	<slider min="-5" max="5" absoluteScreenLocation="true" width="100.0" x="197.0" y="36.0" fixed="false" horizontal="true"/>
+	<lineStyle thickness="4" type="0" typeHidden="1"/>
+	<animation step="0.1" speed="1" type="0" playing="false"/>
+</element>
+<element type="numeric" label="b">
+	<value val="0.0"/>
+	<show object="true" label="true"/>
+	<objColor r="153" g="0" b="0" alpha="0.0"/>
+	<layer val="0"/>
+	<labelMode val="1"/>
+	<slider min="-5" max="5" absoluteScreenLocation="true" width="100.0" x="198.0" y="70.0" fixed="false" horizontal="true"/>
+	<lineStyle thickness="4" type="0" typeHidden="1"/>
+	<animation step="0.1" speed="1" type="0" playing="false"/>
+</element>
+<expression label="f" exp="f(x) = sin(a * x + b)" />
+<element type="function" label="f">
+	<show object="true" label="false"/>
+	<condition showObject="e"/>
+	<objColor r="153" g="0" b="0" alpha="0.0"/>
+	<layer val="0"/>
+	<labelOffset x="45" y="22"/>
+	<labelMode val="0"/>
+	<lineStyle thickness="4" type="0" typeHidden="1"/>
+</element>
+<expression label="T6" exp="&quot;f(x) = &quot; + f" />
+<element type="text" label="T6">
+	<show object="true" label="true"/>
+	<objColor r="153" g="0" b="0" alpha="0.0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<font serif="false" sizeM="1.1428571428571428" size="2" style="0"/>
+	<absoluteScreenLocation  x="34" y="70"/>
+</element>
+<expression label="T1" exp="&quot;f(x) =  sin(a x + b)&quot;"/>
+<element type="text" label="T1">
+	<show object="true" label="true"/>
+	<objColor r="153" g="0" b="0" alpha="0.0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<font serif="false" sizeM="1.1428571428571428" size="2" style="1"/>
+	<absoluteScreenLocation  x="31" y="36"/>
+</element>
+<element type="numeric" label="c">
+	<value val="1.0"/>
+	<show object="true" label="true"/>
+	<objColor r="0" g="0" b="206" alpha="0.1"/>
+	<layer val="0"/>
+	<labelMode val="1"/>
+	<slider min="-5" max="5" absoluteScreenLocation="true" width="100.0" x="568.0" y="33.0" fixed="false" horizontal="true"/>
+	<lineStyle thickness="4" type="0" typeHidden="1"/>
+	<animation step="0.1" speed="1" type="0" playing="false"/>
+</element>
+<element type="numeric" label="d">
+	<value val="0.0"/>
+	<show object="true" label="true"/>
+	<objColor r="0" g="0" b="206" alpha="0.1"/>
+	<layer val="0"/>
+	<labelMode val="1"/>
+	<slider min="-5" max="5" absoluteScreenLocation="true" width="100.0" x="568.0" y="67.0" fixed="false" horizontal="true"/>
+	<lineStyle thickness="4" type="0" typeHidden="1"/>
+	<animation step="0.1" speed="1" type="0" playing="false"/>
+</element>
+<expression label="g" exp="g(x) = sin(c * x + d)" />
+<element type="function" label="g">
+	<show object="true" label="false"/>
+	<condition showObject="i"/>
+	<objColor r="0" g="0" b="204" alpha="0.0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<lineStyle thickness="4" type="0" typeHidden="1"/>
+</element>
+<expression label="text1" exp="&quot;g(x) = sin(c x + d)&quot;"/>
+<element type="text" label="text1">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="206" alpha="0.0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<font serif="false" sizeM="1.1428571428571428" size="2" style="1"/>
+	<absoluteScreenLocation  x="409" y="38"/>
+</element>
+<expression label="text2" exp="&quot;g(x) = &quot; + g" />
+<element type="text" label="text2">
+	<show object="true" label="false"/>
+	<objColor r="0" g="0" b="206" alpha="0.0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<font serif="false" sizeM="1.1428571428571428" size="2" style="0"/>
+	<absoluteScreenLocation  x="409" y="69"/>
+</element>
+<expression label="h" exp="h(x) = f(x) + g(x)" />
+<element type="function" label="h">
+	<show object="true" label="false"/>
+	<condition showObject="j"/>
+	<objColor r="0" g="102" b="0" alpha="0.0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<lineStyle thickness="5" type="0" typeHidden="1"/>
+</element>
+<element type="boolean" label="e">
+	<value val="true"/>
+	<show object="true" label="true"/>
+	<objColor r="204" g="0" b="2" alpha="0.0"/>
+	<layer val="0"/>
+	<labelOffset x="750" y="9"/>
+	<labelMode val="0"/>
+	<caption val="f(x)"/>
+</element>
+<element type="boolean" label="i">
+	<value val="true"/>
+	<show object="true" label="true"/>
+	<objColor r="0" g="0" b="207" alpha="0.0"/>
+	<layer val="0"/>
+	<labelOffset x="750" y="37"/>
+	<labelMode val="0"/>
+	<caption val="g(x)"/>
+</element>
+<element type="boolean" label="j">
+	<value val="false"/>
+	<show object="true" label="true"/>
+	<objColor r="0" g="102" b="3" alpha="0.0"/>
+	<layer val="0"/>
+	<labelOffset x="749" y="65"/>
+	<labelMode val="0"/>
+	<caption val="f(x) + g(x)"/>
+</element>
+</construction>
+</geogebra>

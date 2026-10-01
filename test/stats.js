@@ -1,0 +1,5 @@
+﻿const fs=require('fs'),path=require('path');const {gspToIR}=require('../src/gsp');const {irToGgb}=require('../src/ggb');
+let files=[];function w(d){for(const e of fs.readdirSync(d,{withFileTypes:true})){let p=path.join(d,e.name);if(e.isDirectory())w(p);else if(/\.gsp$/i.test(e.name))files.push(p)}}w(process.argv[2]);
+const types={},reasons={};let n=0;for(const f of files){let ir=gspToIR(fs.readFileSync(f)),r=irToGgb(ir);for(const o of ir.objects){let k=`t${o.srcType}:${o.kind}:${o.coords?'coord':'none'}`;types[k]=(types[k]||0)+1}for(const s of r.warnings){if(!s.startsWith('skip #'))continue;let reason=s.replace(/^skip #\d+ t-?\d+ \S+: /,'').replace(/^skip #\d+ t-?\d+ \S+ /,'').replace(/#\d+/g,'#N');reasons[reason]=(reasons[reason]||0)+1}if(++n%200===0)process.stderr.write(n+'\n')}
+console.log('TYPES');console.log(Object.entries(types).sort((a,b)=>b[1]-a[1]).slice(0,50).map(x=>x.join('\t')).join('\n'));console.log('\nREASONS');console.log(Object.entries(reasons).sort((a,b)=>b[1]-a[1]).slice(0,50).map(x=>x.join('\t')).join('\n'));
+

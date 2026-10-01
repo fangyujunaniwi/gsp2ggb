@@ -1,0 +1,20 @@
+# Generated conversion output and scratch files
+/out/
+/test/out/
+/o.ggb
+/out.xml
+*.tmp
+
+# Archived obsolete copies / hand-off snapshots
+/archive/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# OS / editor
+Thumbs.db
+Desktop.ini
+.DS_Store
+.vscode/
+.idea/

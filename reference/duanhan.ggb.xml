@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<geogebra format="4.2" id="gspconv00-0000-0000-0000-000000000001"  xsi:noNamespaceSchemaLocation="http://www.geogebra.org/ggb.xsd" xmlns="" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" >
+<gui>
+	<window width="1000" height="800" />
+	<perspectives>
+<perspective id="tmp">
+	<panes>
+		<pane location="" divider="Infinity" orientation="1" />
+	</panes>
+	<views>
+		<view id="1" visible="true" inframe="false" stylebar="false" location="1" size="700" window="100,100,600,400" />
+		<view id="2" visible="true" inframe="false" stylebar="false" location="3" size="300" window="100,100,250,400" />
+	</views>
+	<toolbar show="true" items="0 39 59 || 1 501 5 19 67 72 | 2 15 45 18 , 7 37 | 4 3 8 9 , 13 44 , 58 , 47 || 16 51 64 70 65 | 10 34 53 11 , 24  20 22 , 21 23 | 55 56 57 , 12 || 36 46 , 38 49 50 , 71 | 30 29 54 32 31 33 | 17 26 62 , 14 66 68 | 25 52 60 61 || 40 41 42 , 27 28 35 , 6" />
+	<input show="true" cmd="true" top="false" />
+</perspective>
+	</perspectives>
+	<labelingStyle  val="3"/>
+	<font  size="12"/>
+	<graphicsSettings javaLatexFonts="false"/>
+	<consProtColumns  col0="true" col1="true" col2="false" col3="true" col4="false" col5="true" col6="true" col7="false"/>
+	<consProtocol useColor="false"/>
+	<clipboardText  />
+</gui>
+<euclidianView>
+	<viewNumber val="1"/>
+	<coordSystem xZero="-3732" yZero="-3128" scale="400" yscale="400"/>
+	<size width="1000" height="800"/>
+	<evSettings axes="true" grid="false" gridIsBold="false" pointCapturing="3" rightAngleStyle="1" checkboxSize="26" gridType="0"/>
+	<axes  axisIsHorizontal="true" orthoOrigin="false"/>
+	<axisNumber visible="true" labelIsVisible="false" tickLabelDistance="-1" caption="x" unitLabel="" />
+	<axisNumber visible="true" labelIsVisible="false" tickLabelDistance="-1" caption="y" unitLabel="" />
+	<evLabel smallerDegreeSymbol="false" useTypeGreekLetters="true" useSlopeOneOver="true" useShortDecimals="false" useScientificNotation="0" adjLabelDecimalCount="0" adjLabelSigFigs="0" rootAdjustment="0"/>
+	<earthColor r="234" g="241" b="244" alpha="255"/>
+	<bgColor r="255" g="255" b="255" alpha="0"/>
+</euclidianView>
+<kernel>
+	<continuous val="false"/>
+	<decimals val="2"/>
+	<algebraStyle val="0"/>
+	<missingsVal val="2"/>
+	<coordMode val="0"/>
+	<locusMode val="0"/>
+	<angleUnit val="0"/>
+	<angleStyle val="1"/>
+	<probabilityType val="0"/>
+</kernel>
+<scripting>
+	<surface language="JavaScript" form="applet"><startText><![CDATA[]]></startText><loadText><![CDATA[]]></loadText></surface>
+</scripting>
+<construction title="converted from gsp" author="" date="">
+<element type="point" label="O">
+	<show object="true" label="true"/>
+	<objColor r="255" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<coords x="10.58" y="-8.82" z="1"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="O_2" exp="(O) + (4.77590551181,0)" />
+<element type="point" label="O_2">
+	<show object="true" label="false"/>
+	<objColor r="255" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="x_" exp="Distance(O,O_2)" />
+<element type="numeric" label="x_">
+	<show object="true" label="false"/>
+	<objColor r="96" g="96" b="96" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<value val="0"/>
+</element>
+<expression label="O_3" exp="(O_2) + (0,-0.755905511811)" />
+<element type="point" label="O_3">
+	<show object="true" label="false"/>
+	<objColor r="255" g="0" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<pointSize val="5"/>
+	<pointStyle val="0"/>
+</element>
+<expression label="y_" exp="Distance(O,O_3)" />
+<element type="numeric" label="y_">
+	<show object="true" label="false"/>
+	<objColor r="96" g="96" b="96" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<value val="0"/>
+</element>
+<expression label="O_4" exp="&quot;http://exjh.com&quot;" />
+<element type="text" label="O_4">
+	<show object="true" label="false"/>
+	<objColor r="0" g="128" b="0" alpha="0"/>
+	<layer val="0"/>
+	<labelMode val="0"/>
+	<font serif="false" sizeM="1.1428571428571428" size="2" style="0"/>
+</element>
+</construction>
+</geogebra>

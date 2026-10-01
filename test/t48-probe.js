@@ -1,0 +1,4 @@
+﻿const fs=require('fs'),path=require('path');const {gspToIR}=require('../src/gsp');let files=[];function w(d){for(const e of fs.readdirSync(d,{withFileTypes:true})){let p=path.join(d,e.name);if(e.isDirectory())w(p);else if(/\.gsp$/i.test(e.name))files.push(p)}}w(process.argv[2]);
+let bypar={},shown=0;
+for(const f of files){let ir;try{ir=gspToIR(fs.readFileSync(f))}catch{continue}for(const o of ir.objects){if(o.srcType!==48)continue;bypar[o.parents.length]=(bypar[o.parents.length]||0)+1;if(o.parents.length===0&&shown<12){let p=o._raw.rich&&o._raw.rich[2311];shown++;console.log('\n'+path.basename(f),'#'+o.id,'len',p?p.length:0);if(p){console.log(p.subarray(0,160).toString('hex').replace(/(.{32})/g,'$1\n'));console.log('ascii:',JSON.stringify(p.toString('latin1').slice(0,160)))}}}}
+console.log('\nt48 parent histogram',bypar);
