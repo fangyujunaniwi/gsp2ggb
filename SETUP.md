@@ -80,7 +80,8 @@ $env:GGB_EXE = 'C:\Program Files\GeoGebra 5.4\GeoGebra.exe'
 | `reference/` | 已知可用的 `.ggb` / XML 参照样本（`.ggb` 表头格式的来源） |
 | `ref-ctrl/` | **真值样本集**：微型控制草图、其 JavaSketchpad `.htm` 导出、`jsp5.jar` 反编译源码、`cfr.jar` |
 | `t.gsp` | 函数图 + 自定义坐标系的测试草图 |
-| `README.md` | 容器格式逆向事实、语义表、验证、已知限制、工具清单 |
+| `README.md` | 容器格式逆向事实、语义表、验证、已知限制、工具清单（中文） |
+| `README_EN.md` | 同上，英文版 |
 | `HANDOFF.md` | 中文交接说明：当前状态、各轮语义结论、下一步 |
 | `SETUP.md` | 本文件 |
 
@@ -129,7 +130,7 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
 
 `.ggb → .gsp`：生成的 `.gsp` 在真实几何画板 5.06 打开并渲染；`polygon_reflections` 往返后 37 个对象（含 21 条反射）全部还原。
 
-已知限制见 `README.md` 的 **Known limitations**；主要跳过项：`t21`（旋转中心不可恢复）、`t33`/`t29`、部分 `t71/t78` 未解码表达式、`t5/t6` 以圆为基的对象等，均**跳过而非猜测**。
+已知限制见 `README.md` 的 **已知限制**；主要跳过项：`t21`（旋转中心不可恢复）、`t33`/`t29`、部分 `t71/t78` 未解码表达式、`t5/t6` 以圆为基的对象等，均**跳过而非猜测**。
 
 ---
 
@@ -138,7 +139,7 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
 - **中文文件名 / 路径**：PowerShell 用 `>` 重定向会写成 UTF-16；经 PowerShell→Node 传中文参数也可能乱码。
   批量转换请让 **Node 自己在目录内遍历**（`tools/*.js` 已如此），或用 `--outdir`。
   命令行输出建议加 `| Out-File -Encoding utf8` 或统一用 UTF-8 控制台。
-- **GeoGebra 打不开生成文件**：`.ggb` 表头元素名/枚举值必须精确（详见 `README.md` 的 Validation 一节）；
+- **GeoGebra 打不开生成文件**：`.ggb` 表头元素名/枚举值必须精确（详见 `README.md` 的「验证」一节）；
   用 `tools/hybrid.js` 可做表头/正文交叉定位。
 - **覆盖率数字对不上**：确认传入了正确的语料目录（`emitstats`/`exprcov` 的第一个参数）。
 - **截图脚本拿不到窗口**：先确认 `GSP_EXE` / `GGB_EXE` 指向真实可执行文件；脚本会自动探测常见安装路径。

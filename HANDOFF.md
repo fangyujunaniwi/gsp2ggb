@@ -373,7 +373,8 @@
 | `ref-ctrl/` | **真值样本集**：12 个控制草图 + `jsp-samples/`（`.gsp`+`.htm` 配对）+ `jar/`、`decomp/`（CFR 反编译） |
 | `reference/` | 已知可用 `.ggb`/XML 参照样本（`header()` 格式来源） |
 | `t.gsp` | 本轮修复的测试草图（函数图 + 自定义坐标系） |
-| `README.md` | 容器格式逆向事实 / 语义表 / 验证 / 限制 / 工具清单 |
+| `README.md` | 容器格式逆向事实 / 语义表 / 验证 / 限制 / 工具清单（中文） |
+| `README_EN.md` | 同上，英文版 |
 | `SETUP.md` | **交接与部署说明**：环境要求、上手、`GSP_DIR` 等路径变量、打包、验收基线 |
 | `package.json` / `.gitignore` | npm 脚本（`convert`/`selftest`/`stats`）与忽略规则；无第三方依赖 |
 
