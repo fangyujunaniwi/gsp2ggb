@@ -287,15 +287,19 @@ function gspPosXY(o, byId, depth) {
     const path = byId.get(o.parents[0]);
     if (!path) return null;
     const ps = o.params || [];
-    // circle: GSP stores a two-parameter unit direction (cos,sin) in its y-down frame
-    // (cf. jsp5.jar PointOnCircle.Constrain: x=cx+cos·r, y=cy+sin·r) -> center + r·(cos,sin).
+    // circle: the point's position is stored as a unit direction (px,py) in a y-UP frame,
+    // while the file's point coordinates are y-down, so the y component is negated:
+    // position = center + r·(px, −py).  Verified against a GSP render of
+    // ref-ctrl/angle_bisector.gsp (G has py>0 and is rendered above the centre).
+    // The one-parameter form is NOT a decodable position: its value does not match the
+    // point's rendered angle in the corpus (it is animation state / a constraint handle),
+    // so it is left for GeoGebra to choose.
     if (CIRC_KINDS.has(path.kind) && path.parents.length === 2 && ps.length >= 2) {
       const n = Math.hypot(ps[0], ps[1]);
-      if (n > 0.9 && n < 1.1) {
-        const c = gspPosXY(byId.get(path.parents[0]), byId, (depth || 0) + 1);
-        const r = circleRadiusPx(path, byId, (depth || 0) + 1);
-        if (c && r != null) return { x: c.x + r * ps[0], y: c.y + r * ps[1] };
-      }
+      if (!(n > 0.9 && n < 1.1)) return null;
+      const c = gspPosXY(byId.get(path.parents[0]), byId, (depth || 0) + 1);
+      const r = circleRadiusPx(path, byId, (depth || 0) + 1);
+      if (c && r != null) return { x: c.x + r * ps[0], y: c.y - r * ps[1] };
       return null;
     }
     const t = ps.length ? ps[0] : null;
@@ -693,13 +697,12 @@ function planOf(o, byId) {
             args: [path.id], noAnim: true, warn: 'point on transformed polygon (offset/n)' };
         }
       }
-      // circle path: the two-parameter form is a unit direction (cos,sin) in GSP's y-down
-      // frame (verified: unit-length for every corpus sample, and jsp5.jar
-      // PointOnCircle.Constrain uses x=cx+cos·r, y=cy+sin·r).  Emit a real free-on-path
-      // point — Point(circle) + <coords> — so it stays constrained to (and animatable
-      // along) the circle.  When no trustworthy position is available (single-parameter
-      // angle of unverified unit, or an unresolvable center/radius) keep the relation as
-      // a bare Point(circle) and leave the initial parameter to GeoGebra rather than guess.
+      // circle path: the two-parameter form is a unit direction (cos,sin) in a y-up frame
+      // (see gspPosXY).  Emit a real free-on-path point — Point(circle) + <coords> — so it
+      // stays constrained to (and animatable along) the circle.  When the position is not
+      // computable (unresolvable centre/radius, or the one-parameter form whose meaning is
+      // not decoded) keep the relation as a bare Point(circle) and leave the initial
+      // parameter to GeoGebra rather than guess.
       if (path && CIRC_KINDS.has(path.kind) && path.parents.length === 2) {
         const ps = o.params || [];
         const n = ps.length >= 2 ? Math.hypot(ps[0], ps[1]) : 0;
@@ -707,15 +710,10 @@ function planOf(o, byId) {
         const xy = unitDir ? gspPosXY(o, byId, 0) : null;
         if (xy) return { elem: 'point', exprTpl: 'Point(' + R(path.id) + ')',
           args: [path.id], pathXY: toPt(xy), warn: 'point on circle as free-on-path point' };
-        // No trustworthy position: keep the construction relation (a free point on the
-        // circle, hence animatable) and let GeoGebra choose the initial path parameter
-        // instead of guessing.  The single-parameter form is an absolute angle whose unit
-        // is not yet verified against truth; the two-parameter form may simply have an
-        // unresolvable center/radius here.
         return { elem: 'point', exprTpl: 'Point(' + R(path.id) + ')', args: [path.id],
           warn: unitDir
             ? 'point on circle: position not computable (initial position left to GeoGebra)'
-            : 'point on circle: stored angle unit unverified (initial position left to GeoGebra)' };
+            : 'point on circle: stored parameter form not decodable (initial position left to GeoGebra)' };
       }
       // function plot (t72): the plot's tag-2306 record stores the x-domain [xmin, xmax] in
       // frame units and the point parameter is the fraction along it, so x = xmin + t·(xmax-xmin)

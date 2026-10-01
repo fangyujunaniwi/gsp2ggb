@@ -100,8 +100,9 @@ the `m-ezekiel/GeometersSketchpad` repository (e.g. `polygon_reflections.gsp`,
 - `t41` / `t113` = angle (3 points, middle = vertex) → `Angle(A,B,C)`; `t120` = its measurement.
 - `t64` = circle (center + on-point or radius segment) → `Circle(...)`.
 - `t17` = fixed-offset point (parent + pixel offset `(dx,dy)`, y-down) → `(parent)+(dx/50,-dy/50)`.
-- `t15` on a circle stores the position as a **(cos,sin) unit direction** (y-down) or as a single
-  angle (unit unconfirmed); on a segment/line it stores the parameter `t`.
+- `t15` on a circle stores the position as a **(cos,sin) unit direction** (**y-up**, whereas point
+  coordinates are y-down) or as a single parameter (animation state, not a decodable position);
+  on a segment/line it stores the parameter `t`.
 - `t15` on a **segment/polygon** → `Point(path)` plus explicit `<coords x y z>`, i.e. a
   *free-on-path* point. GeoGebra only animates a path point whose `AlgoPointOnPath` has no
   parameter (`isChangeable() == (param == null)`), and it restores the position — and thus the
@@ -111,11 +112,12 @@ the `m-ezekiel/GeometersSketchpad` repository (e.g. `polygon_reflections.gsp`,
 - `t15` on a **circle** → `Point(circle)` (no parameter), a *free point on the circle*, so the
   constraint is preserved and the point is animatable. When the position is stored as a
   (cos,sin) unit direction and both the center and radius resolve numerically, an explicit
-  `<coords>` is added at center + radius·(cos,sin) (y-down). When it is instead stored as a
-  **single angle** (unit not yet confirmed against truth), or the center/radius cannot be
-  resolved, no `<coords>` is emitted and the initial path parameter is left to GeoGebra —
-  better to leave the initial position unset than to guess an angle unit that may place the
-  point wrongly.
+  `<coords>` is added. The stored direction lives in a **y-up** frame while GSP's point
+  coordinates are y-down, so the position is center + radius·(px, −py) (verified against a
+  GSP render of `ref-ctrl/angle_bisector.gsp`). When the position instead uses the
+  **one-parameter** form (whose value is animation state, not a decodable position), or the
+  center/radius cannot be resolved, no `<coords>` is emitted and the initial path parameter
+  is left to GeoGebra rather than guess.
 - `t15` on an **affine image of a segment** → `Point(path,t)`. GeoGebra's segment path
   parameter is exactly φ(X,A,B), matching GSP (verified against the GeoGebra manual).
   GeoGebra's *line* parameter is a nonlinear remap, so points on lines are not emitted this way.
@@ -287,12 +289,12 @@ node tools\jspextract.js page.htm --out o.json
   1430-file corpus, e.g. `PerpendicularLine(M, t)` with `t` a circle). GSP's exact semantics for
   "perpendicular/parallel to a circle" is unconfirmed, so these are emitted as-is (GeoGebra opens
   the file but leaves that object undefined) rather than guessed.
-- A circle point stored as a **single angle** (`t15` with one parameter) has an **angle unit not yet
-  confirmed against truth**: the corpus value range is consistent with degrees (about a quarter of
-  the samples exceed 2π, none exceed 360), but it may follow the sketch's angle unit. Such points
-  are kept as `Point(circle)` (correct constraint and animatability) with the initial position left
-  to GeoGebra — the unit is **not** guessed. Points stored as a (cos,sin) unit direction restore
-  their exact position.
+- A circle point stored with **one parameter** (`t15`) does not expose a decodable position: the
+  value does not match the point's rendered angle in the corpus (it is animation state / a
+  constraint handle). Such points are kept as `Point(circle)` (correct constraint and
+  animatability) with the initial position left to GeoGebra — the value is **not** guessed.
+  Points stored as a (cos,sin) unit direction restore their exact position
+  (center + radius·(px, −py); the stored direction is y-up while GSP point coords are y-down).
 - The GSP view is not auto-fitted after conversion.
 - **Known typing caveat:** points on a segment/line path are emitted as `P + t*(Q-P)`. GeoGebra 5.4
   types that arithmetic form as a **vector** (not a point), even though the coordinates are correct.

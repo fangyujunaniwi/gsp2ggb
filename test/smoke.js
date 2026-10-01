@@ -97,10 +97,14 @@ if (fs.existsSync(btnSrc)) {
     Math.abs(C.y - (A.y + PHI * (B.y - A.y))) < 1e-6, JSON.stringify(C));
 }
 
-// --- point on a circle (t15): the two-parameter form is a (cos,sin) unit direction in
-//     GSP's y-down frame (jsp5.jar PointOnCircle.Constrain).  It must become a real
-//     free-on-path point — Point(circle) + <coords> — that lies on its circle.
-//     ref-ctrl/angle_bisector.gsp is a bundled control sketch with two such points. ---
+// --- point on a circle (t15): the two-parameter form is a (cos,sin) unit direction in a
+//     y-up frame, giving position = center + r·(px, −py) in the file's y-down coordinates
+//     (verified against a GSP render of ref-ctrl/angle_bisector.gsp: G has py>0 and is
+//     drawn above the centre).  It must become a real free-on-path point —
+//     Point(circle) + <coords> — lying on its circle, on the correct side.  The
+//     one-parameter form is not a decodable position and stays a bare Point(circle).
+//     ref-ctrl/angle_bisector.gsp has two unit-direction points (G, H) and one
+//     one-parameter point (E). ---
 const circSrc = path.join(root, 'ref-ctrl', 'angle_bisector.gsp');
 if (fs.existsSync(circSrc)) {
   const cx = unzip(irToGgb(gspToIR(fs.readFileSync(circSrc))).buf).get('geogebra.xml').toString('utf8');
@@ -140,10 +144,40 @@ if (fs.existsSync(circSrc)) {
   }
   check('unit-direction circle points keep their position via <coords> (on the circle)',
     allOn, bad.join(',') || ('withCoords=' + withCoords.length));
+  // The direction is y-up: in GeoGebra's y-up frame the offset (p − centre) must have the
+  // same sign as the stored py (position = centre + r·(px, −py) in GSP's y-down coords).
+  const cirIR = gspToIR(fs.readFileSync(circSrc));
+  const paramByLabel = new Map(cirIR.objects.filter(o => o.label).map(o => [o.label, o]));
+  const sideBad = [];
+  for (const o of withCoords) {
+    const g = circleGeom(o.circ), p = cPtOf(o.pt);
+    const src = paramByLabel.get(o.pt);
+    const py = src && src.params && src.params.length >= 2 ? src.params[1] : null;
+    if (!g || py === null || Math.sign(p.y - g.c.y) !== Math.sign(py)) sideBad.push(o.pt);
+  }
+  check('unit-direction circle points sit on the correct side (y-up direction)',
+    withCoords.length >= 2 && sideBad.length === 0, sideBad.join(','));
   const relationOnly = onCircle.filter(o => !cPtOf(o.pt));
-  check('angle-form circle points stay a bare Point(circle) (relation kept, no guessed position)',
+  check('one-parameter circle point (undecodable position) stays a bare Point(circle)',
     relationOnly.length > 0 && relationOnly.every(o => cExprOf(o.pt) === 'Point(' + o.circ + ')'),
     'relation-only=' + relationOnly.map(o => o.pt).join(','));
+}
+
+// --- one-parameter circle point: its value is not a decodable position (it does not match
+//     the rendered angle in the corpus), so it must stay a bare Point(circle) with no
+//     <coords> — constructed in memory so the check is exact. ---
+{
+  const sIR = { objects: [
+    { id: 1, kind: 'free', parents: [], params: [], coords: { x: 100, y: 100 }, label: 'C', srcType: 0 },
+    { id: 2, kind: 'free', parents: [], params: [], coords: { x: 250, y: 100 }, label: 'P', srcType: 0 },
+    { id: 3, kind: 'circleOn', parents: [1, 2], params: [], label: '', srcType: 3 },
+    { id: 4, kind: 'pointOnPath', parents: [3], params: [2.344061], label: 'Q', srcType: 15 },
+  ], warnings: [] };
+  const sx = unzip(irToGgb(sIR).buf).get('geogebra.xml').toString('utf8');
+  const qExpr = (sx.match(/<expression label="Q" exp="([^"]*)"/) || [])[1];
+  const qHasCoords = /<element type="point" label="Q">[\s\S]*?<coords /.test(sx);
+  check('one-parameter circle point emitted as bare Point(circle), no guessed <coords>',
+    /^Point\(.+\)$/.test(qExpr || '') && !qHasCoords, qExpr + (qHasCoords ? ' +coords' : ''));
 }
 
 // --- TUI helpers (src/tui-util.js) and job pipeline (bin/tui.js) ---
