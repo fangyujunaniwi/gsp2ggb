@@ -9,6 +9,8 @@ const { gspToIR } = require('../src/gsp.js');
 const { irToGgb, ggbToIR } = require('../src/ggb.js');
 const { irToGsp } = require('../src/ir2gsp.js');
 const { unzip } = require('../src/zip.js');
+const os = require('os');
+const U = require('../src/tui-util.js');
 
 let fails = 0;
 function check(name, cond, detail) {
@@ -94,6 +96,38 @@ if (fs.existsSync(btnSrc)) {
     !!(A && B && C) && Math.abs(C.x - (A.x + PHI * (B.x - A.x))) < 1e-6 &&
     Math.abs(C.y - (A.y + PHI * (B.y - A.y))) < 1e-6, JSON.stringify(C));
 }
+
+// --- TUI helpers (src/tui-util.js) and job pipeline (bin/tui.js) ---
+check('tui: recognises .gsp/.ggb', U.isConvertible('a.gsp') && U.isConvertible('B.GGB') && !U.isConvertible('a.txt'));
+check('tui: default output swaps the extension',
+  U.defaultOutPath('C:\\x\\a.gsp', 'auto') === 'C:\\x\\a.ggb' && U.defaultOutPath('C:\\x\\a.ggb', 'gsp') === 'C:\\x\\a.gsp',
+  U.defaultOutPath('C:\\x\\a.gsp', 'auto'));
+check('tui: direction cycles auto->ggb->gsp',
+  U.nextDirection('auto') === 'ggb' && U.nextDirection('ggb') === 'gsp' && U.nextDirection('gsp') === 'auto');
+check('tui: CJK display width is 2 columns', U.dispWidth('中文') === 4 && U.dispWidth('ab') === 2);
+check('tui: truncate/pad respect display width',
+  U.dispWidth(U.truncate('中文abcdef', 5)) <= 5 && U.dispWidth(U.pad('中', 4)) === 4);
+check('tui: list window stays inside the list',
+  U.windowRange(3, 0, 5).join() === '0,3' && U.windowRange(10, 9, 3).join() === '7,10');
+const bt = U.planBatch(path.join(root, 'ref-ctrl'), path.join(os.tmpdir(), 'gsp-conv-tui'), 'auto');
+check('tui: batch planner picks up the control sketches',
+  bt.length >= 10 && bt.every(j => /\.(ggb|gsp)$/i.test(j.out)), bt.length);
+
+const tui = require('../bin/tui.js');
+tui.state.to = 'auto'; tui.state.outMode = 'alongside';
+const tj = tui.makeJobs({ kind: 'file', path: src });
+check('tui: single-file job targets a .ggb next to the source',
+  tj.length === 1 && /\.ggb$/i.test(tj[0].out), tj[0] && tj[0].out);
+check('tui: every screen renders a full frame', (() => {
+  tui.state.jobs = [{ in: src }]; tui.state.jobIndex = 0;
+  return ['menu', 'browse', 'running', 'report', 'warnings', 'help']
+    .every(sc => { tui.state.screen = sc; return tui.buildScreen(80, 24).length === 24; });
+})());
+check('tui: a narrow terminal still yields a full frame', tui.buildScreen(30, 10).length === 10);
+const rec = tui.runOne({ in: src, out: path.join(os.tmpdir(), 'gsp-conv-tui-smoke.ggb') });
+check('tui: runOne converts t.gsp to a real .ggb',
+  rec.ok && fs.existsSync(rec.out) && fs.statSync(rec.out).size > 0, rec.error || rec.dir);
+try { fs.unlinkSync(rec.out); } catch (e) { /* ignore */ }
 
 console.log(fails ? ('SMOKE FAILED (' + fails + ')') : 'SMOKE PASSED');
 process.exit(fails ? 1 : 0);

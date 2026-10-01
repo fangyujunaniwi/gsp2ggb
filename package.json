@@ -9,6 +9,7 @@
   "main": "src/ggb.js",
   "scripts": {
     "convert": "node bin/cli.js",
+    "tui": "node bin/tui.js",
     "stats": "node tools/emitstats.js",
     "coverage": "node tools/exprcov.js",
     "selftest": "node test/smoke.js"

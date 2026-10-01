@@ -31,11 +31,20 @@ node bin\cli.js input.gsp -q
 
 :: self-contained smoke test (no corpus needed)
 node test\smoke.js
+
+:: terminal UI (pure Node + ANSI, no third-party deps)
+node bin\tui.js
 ```
 
 No third-party dependencies; Node.js ≥ 16 only. Diagnostic scripts take the corpus path as their
 first argument or read it from the `GSP_DIR` environment variable (see `SETUP.md` for the full
 list of path variables and for packaging a clean hand-off zip with `tools\package.ps1`).
+
+`bin/tui.js` is an interactive terminal UI: browse and pick a `.gsp`/`.ggb` file or folder,
+switch the conversion direction and output location, run conversions and inspect the report /
+warnings (`w` for warning details, `o` to open the output folder in the file manager). On a
+non-TTY (pipes / CI) it degrades to a line-based numbered menu, so it stays scriptable; it can
+also be started with `npm run tui`.
 
 ## Architecture
 
@@ -44,9 +53,12 @@ list of path variables and for packaging a clean hand-off zip with `tools\packag
 | `src/zip.js` | ZIP read/write for the `.ggb` container (`unzip`/`zip`/`crc32`). |
 | `src/gsp.js` | `.gsp` reader: decodes the `GSP4` record chain into an IR (intermediate representation). |
 | `src/ggb.js` | `irToGgb` (IR → GeoGebra XML → `.ggb`) and `ggbToIR` (`.ggb` → IR). |
+| `src/convert.js` | Conversion entry point shared by the CLI and the TUI (`convertBuffer`). |
+| `src/tui-util.js` | TUI helpers: directory listing, batch job planning, CJK display width/truncation. |
 | `src/ir2gsp.js` | IR → `.gsp` writer. Clones real per-type record blocks from `src/gsp-template.json`, patches parents/coords/params/labels, and writes a valid `GSP4` file. |
 | `src/gsp-template.json` | Template library: header/tail + 215 real object-block skeletons covering ~120 GSP type codes (built by `tools/build-template.js`). |
 | `bin/cli.js` | Command-line front end. |
+| `bin/tui.js` | Interactive terminal UI (pure Node + ANSI); degrades to a line-based menu on a non-TTY (pipes/CI). |
 
 ### Intermediate representation
 Each object has `{ id, label, kind, srcType, parents[], coords|null, params[], value, color }`.

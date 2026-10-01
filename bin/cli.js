@@ -10,8 +10,7 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
-const { gspToIR } = require('../src/gsp.js');
-const { irToGgb, ggbToIR } = require('../src/ggb.js');
+const { convertBuffer } = require('../src/convert.js');
 
 function parseArgs(argv) {
   const a = { _: [] };
@@ -25,19 +24,6 @@ function parseArgs(argv) {
     else a._.push(t);
   }
   return a;
-}
-
-function convertBuffer(buf, inExt, to) {
-  const dir = to || (inExt === '.gsp' ? 'ggb' : 'gsp');
-  if (dir === 'ggb') {
-    const ir = gspToIR(buf);
-    const r = irToGgb(ir);
-    return { dir: 'gsp -> ggb', out: r.buf, ir, warnings: r.warnings, total: ir.objects.length, emitted: r.stats.planned, xml: r.xml };
-  }
-  const { irToGsp } = require('../src/ir2gsp.js');
-  const ir = ggbToIR(buf);
-  const r = irToGsp(ir);
-  return { dir: 'ggb -> gsp', out: r.buf, ir, warnings: r.warnings, total: ir.objects.length, emitted: r.stats.planned };
 }
 
 function main() {

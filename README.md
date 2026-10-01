@@ -30,11 +30,18 @@ node bin\cli.js input.gsp -q
 
 :: 自包含冒烟测试（不需要语料库）
 node test\smoke.js
+
+:: 终端界面（纯 Node + ANSI，无第三方依赖）
+node bin\tui.js
 ```
 
 无第三方依赖；仅需 Node.js ≥ 16。诊断脚本以第一个参数接收语料库路径，或从 `GSP_DIR`
 环境变量读取（路径变量全表，以及用 `tools\package.ps1` 打包干净交付 zip 的说明，
 见 `SETUP.md`）。
+
+`bin/tui.js` 是交互式终端界面：浏览并选择 `.gsp`/`.ggb` 文件或文件夹、切换转换方向与输出
+位置、运行转换并查看报告/警告（`w` 查看警告明细、`o` 在资源管理器中打开输出目录）。非 TTY
+（管道 / CI）时自动退化为逐行编号菜单，因此同样可脚本化；也可用 `npm run tui` 启动。
 
 ## 架构
 
@@ -43,9 +50,12 @@ node test\smoke.js
 | `src/zip.js` | `.ggb` 容器的 ZIP 读写（`unzip`/`zip`/`crc32`）。 |
 | `src/gsp.js` | `.gsp` 读取器：把 `GSP4` 记录链解码为 IR（中间表示）。 |
 | `src/ggb.js` | `irToGgb`（IR → GeoGebra XML → `.ggb`）与 `ggbToIR`（`.ggb` → IR）。 |
+| `src/convert.js` | CLI 与 TUI 共用的转换入口（`convertBuffer`）。 |
+| `src/tui-util.js` | TUI 辅助：目录浏览、批量任务规划、CJK 显示宽度/截断。 |
 | `src/ir2gsp.js` | IR → `.gsp` 写入器。从 `src/gsp-template.json` 克隆各类型真实记录块，改父引用/坐标/参数/标签，写出合法的 `GSP4` 文件。 |
 | `src/gsp-template.json` | 模板库：文件头/尾 + 215 个真实对象块骨架，覆盖约 120 个 GSP 类型码（由 `tools/build-template.js` 生成）。 |
 | `bin/cli.js` | 命令行前端。 |
+| `bin/tui.js` | 交互式终端界面（纯 Node + ANSI）；非 TTY（管道/CI）时退化为逐行编号菜单。 |
 
 ### 中间表示
 每个对象为 `{ id, label, kind, srcType, parents[], coords|null, params[], value, color }`。

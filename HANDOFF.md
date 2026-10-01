@@ -18,6 +18,7 @@
 
 - 单文件：`node bin\cli.js input.gsp -o out.ggb`
 - 批量目录：`node bin\cli.js "D:\Folder" --outdir "D:\Out"`
+- 终端界面：`node bin\tui.js`（纯 Node + ANSI；非 TTY 退化为逐行菜单）
 - 参数：`-o` / `--outdir` / `--to ggb|gsp` / `-q` / `--json`
 - 方向由扩展名决定（`--to` 可强制）。
 
@@ -355,6 +356,9 @@
 | 文件 | 作用 |
 |---|---|
 | `bin/cli.js` | CLI 入口 |
+| `bin/tui.js` | 交互式终端界面（纯 Node + ANSI；非 TTY 时逐行菜单） |
+| `src/convert.js` | CLI/TUI 共用转换入口（`convertBuffer`） |
+| `src/tui-util.js` | TUI 辅助（目录浏览、批量任务规划、CJK 宽度/截断） |
 | `src/zip.js` | `.ggb` 容器 ZIP 读写 |
 | `src/gsp.js` | `.gsp` 读取 → IR（含 parseRecords、TYPES） |
 | `src/jsp.js` | JavaSketchpad 文本读取（`extractConstruction` / `parseConstruction`） |

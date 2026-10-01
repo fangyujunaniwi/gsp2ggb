@@ -74,7 +74,8 @@ $env:GGB_EXE = 'C:\Program Files\GeoGebra 5.4\GeoGebra.exe'
 | 路径 | 内容 |
 |---|---|
 | `bin/cli.js` | 命令行入口（单文件 + 批量） |
-| `src/` | 全部转换逻辑：`gsp.js` 读 `.gsp`；`ggb.js` 写/读 `.ggb`；`ir2gsp.js` + `gsp-template.json` 写 `.gsp`；`expr.js` 解码 `tag 2311` 表达式；`zip.js`、`jsp.js` |
+| `bin/tui.js` | 交互式终端界面（纯 Node + ANSI；非 TTY 时逐行编号菜单） |
+| `src/` | 全部转换逻辑：`gsp.js` 读 `.gsp`；`ggb.js` 写/读 `.ggb`；`ir2gsp.js` + `gsp-template.json` 写 `.gsp`；`expr.js` 解码 `tag 2311` 表达式；`zip.js`、`jsp.js`；`convert.js`/`tui-util.js` 供 CLI/TUI 共用 |
 | `tools/` | 诊断 / 回归 / 截图脚本（清单见 `README.md` 末尾） |
 | `test/` | 早期探针脚本 + `smoke.js` 自检 |
 | `reference/` | 已知可用的 `.ggb` / XML 参照样本（`.ggb` 表头格式的来源） |
