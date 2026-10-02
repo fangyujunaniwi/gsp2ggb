@@ -1298,9 +1298,27 @@ function planOf(o, byId) {
     }
     case 'iterateImage': {
       // t77 = the iterates of its first parent X under the iteration given by its second
-      // parent: the same f, starting from X -> IterationList(f, iv, {X}, count).
+      // parent.
       if (P.length !== 2) return skip('iterate image needs [object, iteration]');
-      return iterationListPlan(byId.get(o.parents[1]), byId, o.parents[0]);
+      const it = byId.get(o.parents[1]), x = byId.get(o.parents[0]);
+      // A segment anchored on the iteration's preimage, e.g. the pentagon's edge BB':
+      // GeoGebra's IterationList degrades a segment start to a list of lengths, so rebuild
+      // it from consecutive elements of the (point) iteration list L.
+      if (it && (it.kind === 'iteration' || it.kind === 'iterationParam') && x &&
+          SEG_KINDS.has(x.kind) && x.parents.length === 2) {
+        const base = it.kind === 'iterationParam' ? 1 : 0;
+        const startIt = it.parents[base];
+        if (x.parents[0] === startIt || x.parents[1] === startIt) {
+          const lp = iterationListPlan(it, byId, startIt);
+          if (lp && lp.skip) return lp;
+          const L = R(o.parents[1]);
+          return { elem: 'list',
+            exprTpl: 'Sequence(Segment(Element(' + L + ',k),Element(' + L + ',k+1)),k,1,Length(' + L + ')-1)',
+            args: [o.parents[1]],
+            warn: 'segment iterate image -> Sequence over the point-iteration list' };
+        }
+      }
+      return iterationListPlan(it, byId, o.parents[0]);
     }
     case 'ratioMeasure': {
       const r = ratioTemplate(o, byId);

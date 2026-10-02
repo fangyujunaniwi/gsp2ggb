@@ -5,7 +5,7 @@
 > **接手先跑（自检，项目根 = 本目录）**：
 > ```powershell
 > node test/smoke.js                    # 应输出 SMOKE PASSED（无需语料）
-> node tools/emitstats.js "<语料根>"    # 全树 1478 文件基线：objects=407095 emitted=243871 rate=59.91%（2026-10-03）
+> node tools/emitstats.js "<语料根>"    # 全树 1478 文件基线：objects=407095 emitted=244067 rate=59.95%（2026-10-03）
 > node tools/exprcov.js  "<语料根>"     # 2311 解码覆盖率 57079/57112 = 99.9%
 > ```
 > 语料按本机实际路径传入（开发机为 `D:\Program Files (x86)\Sketchpad5`），或设 `GSP_DIR` 环境变量，
@@ -56,6 +56,12 @@
     （加载时由 coords 反解路径参数）。数字（参数）目标还需 GeoGebra 滑块区间才可动画，暂不支持。
 
 ## 当前状态（2026-09-27 建；2026-10-01 交替机续作）
+- ✅ **本机续作（2026-10-03，第十八轮）：线段迭代象改用 `Sequence` 重建。**
+  1. GeoGebra 的 `IterationList` 对**线段**起点会退化成「一串长度」（列表显示就是长度，但画出来的仍是线段）；
+     更稳的做法：由**点迭代列表**重建相邻对 → `Sequence(Segment(Element(L,k),Element(L,k+1)),k,1,Length(L)-1)`。
+     真值草图 `iter_depth_pentagon` 的五边形边即由此得到（渲染可见线段）。
+  2. 目前仅处理**端点落在原象上**的线段（`X.parents[0/1] == 原象`）；其余线段/多边形（5689 条）仍跳过。
+  3. 全树：**`emitted 243871 → 244067`（rate 59.91% → 59.95%，+196）**；`t77` 发射 114→269。
 - ✅ **本机续作（2026-10-03，第十七轮）：定性并（保守）落地 `t77` = 迭代象。**
   1. `t77` 父 `[对象 X, 迭代对象]` → **X 在同一规则 f 下的迭代象** → `IterationList(f, iv, {X}, 次数)`
      （复用迭代对象的 f；抽了 `iterationListPlan(it, byId, startId)` 共用）。
