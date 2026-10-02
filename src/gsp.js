@@ -112,6 +112,7 @@ const TYPES = {
   16: { k: 'translateImage' },  // preimage + vector endpoints p1,p2
   17: { k: 'offsetPoint' },     // parent + fixed pixel offset (dx,dy), y-down
   21: { k: 'implicitRotate' },  // rotation about an implicit/marked center (arity 1, params carry angle)
+  24: { k: 'fixedAngleMarkedDistance' }, // preimage + marked-distance value; params (-sinθ, cosθ, θ) = fixed angle
   27: { k: 'rotateImage' },     // preimage + center, params (sin_i, cos_i, deg, 0)
   28: { k: 'markedAngleRotate' }, // preimage + center + A + B + C (rotate by marked angle ABC)
   29: { k: 'measuredAngleRotate' }, // preimage + center + angle-measure (MeasuredAngleRotation)

@@ -128,6 +128,10 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
   并补 `t62` 的「移动」(kind 3，`SetCoords`) 与「同时」(kind 7)，修圆父序，批量落地 `2307` 测量族
   （`t69`=`PlotXY`、`t65/t66`=横/纵坐标、`t38/39/40/42/46/86`）与弧对象（`t79/80/81`=弧、`t43/44`）：
   **`emitted=211364 rate=52.82%`**（`t21` 发射 0→10,730，`t94` 发射 810，`t35` 发射 336，`t62` 发射 4,771）。
+- **2026-10-03 最新基线（全树 `1478` 文件 / `407095` 对象）**：定性并落地 **`t24` = 定角 + 标记距离平移
+  （`FixedAngleMarkedDistance`）**——真值草图见 `ref-ctrl/jsp-samples/translate_fixedangle*`；
+  `image = pre + v·(cosθ, −sinθ)`，v = 被标记的距离值（发射为 GeoGebra 数值，不再乘/除 `SCALE`）：
+  **`emitted=228234 rate=56.06%`**（`t24` 发射 2,236；余 2,119 为级联）。
 - `tag 2311` 表达式解码覆盖 **57079/57112 = 99.9%**（`node tools/exprcov.js <语料目录>`）。
 - `node test/smoke.js` → `SMOKE PASSED`。
 
@@ -142,7 +146,7 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
 
 `.ggb → .gsp`：生成的 `.gsp` 在真实几何画板 5.06 打开并渲染；`polygon_reflections` 往返后 37 个对象（含 21 条反射）全部还原。
 
-已知限制见 `Tech_Details.md` 的 **已知限制**；主要跳过项：`t77/t89/t88/t90/t24/t75/t32` 等迭代/列表/自定义工具类、
+已知限制见 `Tech_Details.md` 的 **已知限制**；主要跳过项：`t77/t89/t88/t90/t75/t32` 等迭代/列表/自定义工具类、
 `point on unsupported path`、`t62` 中目标被上游跳过/源目标不明的移动按钮与数字目标动画按钮、
 `t94`（宿主为直线/圆、或跨宿主投影的情形）、`t35`（轨迹的直线情形/嵌套轨迹）、
 以及 `t33` 中「中心非点」的同名异类结构等，均**跳过而非猜测**。

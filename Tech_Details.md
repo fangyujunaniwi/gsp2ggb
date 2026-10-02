@@ -205,6 +205,7 @@
 |---|---|---|---|---|
 | `t16` | `VectorTranslation` | `VectorTranslation` | 原像 + A + B | `Translate(pre, Vector(A,B))` |
 | `t21` | — | `PolarTranslation` | 原像（+ 固定向量） | `Translate(pre, Vector((vx,vy)))` |
+| `t24` | `FixedAngleMarkedDistance` | `Translation/FixedAngle/MarkedDistance` | 原像 + 距离值（+ 固定角） | `Translate(pre, v·Vector((cosθ,sinθ)))` |
 | `t27` | `Rotation` | `Rotation` | 原像 + 中心（+ 固定角） | `Rotate(pre, θ°, center)` |
 | `t28` | `MarkedAngleRotation` | `Rotation/MarkedAngle` | 原像 + 中心 + A + B + C | `Rotate(pre, Angle(A,B,C), center)` |
 | `t29` | `MeasuredAngleRotation` | `Rotation/MeasuredAngle` | 原像 + 中心 + 角度测量 | `Rotate(pre, Angle(A,B,C), center)` |
@@ -229,6 +230,17 @@
 `image = parent + d1·(cosθ, −sinθ)`（文件 y 向下）；`d1` 与点坐标同单位，故发射前须按同一比例
 折算（无 frame 用 `/SCALE`，有 frame 用 `frame.disp`），发 `Translate(pre, Vector((vx,vy)))`。
 旧推断「绕隐式/标记中心旋转」已被真值否定（`mark_center_rotate_fixed.gsp` 产出的是 `t27`）。
+
+**`t24` = 定角 + 标记距离平移（`FixedAngleMarkedDistance`）**（2026-10-03 用真值草图确认并落地）。
+记录 = **2 父 + `(-sinθ, cosθ, θ)`**，父 `[原像, 距离值]`；`.htm` 对应
+`Translation/FixedAngle/MarkedDistance(pre, dist, θ)`。语义为 `image = pre + v·(cosθ, −sinθ)`
+（文件 y 向下），v = 被标记的距离值。**v 由父对象（多为 `t48` 计算值 / `t36` 长度 / `t37` 距离等）
+发射为 GeoGebra 数值，其单位已与坐标一致**，故发 `Translate(pre, v·Vector((cosθ,sinθ)))`，
+v **不再乘/除 `SCALE`**。真值草图（`ref-ctrl/jsp-samples/translate_fixedangle*`）实测：
+θ=90° 时 `P'−P` 的文件坐标位移 `(0,−313.1)` 恰等于线段 AB 的长度（313.08）。
+同一轮还顺带定性了两个小类型：**`t22`** = 标记角（3 点 `[A,B,C]`）+ 固定距离，父
+`[原像, A, B, C]`；**`t25`** = 标记角 + 标记距离，父 `[原像, A, B, C, 距离值]`（暂未落地）。
+若草图处于**非等比坐标框架**下，方向与距离的缩放会不一致，故该类保持跳过（不猜）。
 
 ### 弧对象
 - `t79`/`t80`/`t81` = 圆弧：父 `[圆, P1, P2]` → GeoGebra `Arc(圆, P1, P2)`

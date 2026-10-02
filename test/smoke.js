@@ -204,6 +204,27 @@ if (fs.existsSync(circSrc)) {
     'A_2=' + e2 + ' B.x=' + bCo[1]);
 }
 
+// --- t24 = FixedAngleMarkedDistance (verified 2026-10-03 with the user's control
+//     sketches: .htm = Translation/FixedAngle/MarkedDistance(pre,dist,θ)).  2 parents
+//     [preimage, distanceValue] + params (-sinθ, cosθ, θ); image = pre + v·(cosθ,−sinθ),
+//     where the marked distance v is emitted as a numeric in GeoGebra units and is
+//     therefore used verbatim (no SCALE factor). ---
+{
+  const sIR = { objects: [
+    { id: 1, kind: 'free', parents: [], params: [], coords: { x: 100, y: 100 }, label: 'A', srcType: 0 },
+    { id: 2, kind: 'free', parents: [], params: [], coords: { x: 300, y: 100 }, label: 'B', srcType: 0 },
+    { id: 3, kind: 'segment', parents: [1, 2], params: [], label: '', srcType: 2 },
+    { id: 4, kind: 'measureLengthSeg', parents: [3], params: [], label: '', srcType: 36 },
+    { id: 5, kind: 'free', parents: [], params: [], coords: { x: 0, y: 0 }, label: 'P', srcType: 0 },
+    { id: 6, kind: 'fixedAngleMarkedDistance', parents: [5, 4], params: [-1, 6.123233995736766e-17, 90],
+      label: 'P_2', srcType: 24 },
+  ], warnings: [] };
+  const sx = unzip(irToGgb(sIR).buf).get('geogebra.xml').toString('utf8');
+  const e6 = (sx.match(/<expression label="P_2" exp="([^"]*)"/) || [])[1];
+  check('t24 fixed-angle + marked-distance -> Translate by the measured (unit-scaled) distance',
+    /^Translate\(P,\(Length\([^)]+\)\)\*Vector\(\(0,1\)\)\)$/.test(e6 || ''), e6);
+}
+
 // --- TUI helpers (src/tui-util.js) and job pipeline (bin/tui.js) ---
 check('tui: recognises .gsp/.ggb', U.isConvertible('a.gsp') && U.isConvertible('B.GGB') && !U.isConvertible('a.txt'));
 check('tui: default output swaps the extension',

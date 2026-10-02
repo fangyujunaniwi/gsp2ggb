@@ -76,7 +76,8 @@ const POINT_KINDS = new Set(['free', 'midpoint', 'pointOnPath', 'intersectLL',
 const LINE_KINDS = new Set(['line2pt', 'perpLine', 'parallelLine', 'angleBisector', 'axis']);
 const SEG_KINDS = new Set(['segment']);
 const XFORM_KINDS = new Set(['translateImage', 'rotateImage', 'dilateImage', 'reflectImage',
-  'markedAngleRotate', 'measuredAngleRotate', 'segRatioDilate', 'markedRatioDilate', 'implicitRotate']);
+  'markedAngleRotate', 'measuredAngleRotate', 'segRatioDilate', 'markedRatioDilate', 'implicitRotate',
+  'fixedAngleMarkedDistance']);
 // Follow a chain of affine images back to the original object kind ('segment'/'line'/...).
 function straightBaseKind(obj, byId, depth) {
   let cur = obj, guard = 0;
@@ -905,6 +906,37 @@ function planOf(o, byId) {
         exprTpl: 'Translate(' + R(o.parents[0]) + ',Vector((' + fmt(g.x) + ',' + fmt(g.y) + ')))',
         args: [o.parents[0]],
         warn: 'polar translation (t21): Translate by a fixed vector' };
+    }
+    case 'fixedAngleMarkedDistance': {
+      // t24 = Translator "FixedAngleMarkedDistance" (verified 2026-10-03 with user
+      // control sketches: .htm = Translation/FixedAngle/MarkedDistance(pre,dist,θ);
+      // .gsp = 2 parents [preimage, distanceValue] + params (-sinθ, cosθ, θ)).
+      // image = pre + v·(cosθ, −sinθ) in the y-down file frame, where v is the marked
+      // distance in file units.  The distance parent is emitted as a GeoGebra numeric
+      // whose value is already in GeoGebra units (the same scale as the coordinates),
+      // so the offset is N·(unit direction mapped to GGB) — N is used verbatim, with
+      // no extra SCALE factor, exactly like the measure object itself.
+      if (P.length !== 2) return skip('fixed-angle marked-distance translation needs preimage+distance');
+      const fp0 = (o.params || [])[0], fp1 = (o.params || [])[1];
+      if (!Number.isFinite(fp0) || !Number.isFinite(fp1) || Math.hypot(fp0, fp1) < 0.5)
+        return skip('fixed-angle marked-distance translation: fixed angle not stored');
+      const v = markerNumeric(byId.get(o.parents[1]), byId);
+      if (!v) return skip('fixed-angle marked-distance value not decodable (tag 2311)');
+      // A non-similarity sketch frame would scale the direction and the marked length
+      // by different factors; only attempt those when the frame is (near) uniform.
+      if (frame && Math.abs(frame.uxLen / frame.uyLen - 1) > 0.05)
+        return skip('fixed-angle marked-distance translation under an anisotropic sketch frame');
+      const fth = Math.atan2(-fp0, fp1);
+      const dir = frame ? frame.disp(Math.cos(fth), -Math.sin(fth))
+                        : toGgb({ x: Math.cos(fth), y: -Math.sin(fth) }, o._unit);
+      const nrm = Math.hypot(dir.x, dir.y);
+      if (!(nrm > 0)) return skip('fixed-angle marked-distance translation: degenerate direction');
+      const cx = dir.x / nrm, cy = dir.y / nrm;
+      return { elem: elemTypeOf(o, byId),
+        exprTpl: 'Translate(' + R(o.parents[0]) + ',(' + v.exprTpl + ')*Vector((' +
+          fmt(cx) + ',' + fmt(cy) + ')))',
+        args: [o.parents[0]].concat(v.args),
+        warn: 'fixed-angle marked-distance translation (t24): Translate by a measured distance' };
     }
     case 'unitX':
       if (o.params.length >= 1) {
