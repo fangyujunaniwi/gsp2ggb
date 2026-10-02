@@ -691,10 +691,9 @@ function straightRef(obj, byId, R) {
   return r ? { p1: r.p1, p2: r.p2, ids: [...new Set(ids)] } : null;
 }
 
-// GSP iteration -> GeoGebra IterationList.  `it` is a t76 (fixed count in tag-2314 +16)
-// or t89 (count as parents[0]); `startId` is the object the list starts from (the
-// iteration's preimage for t76/t89 themselves, or the t77 own object X).
-function iterationListPlan(it, byId, startId) {
+// Core of a GSP iteration (t76 fixed count / t89 count-as-parents[0]): the recurrence
+// expression f (with the preimage replaced by the iteration variable "iv") and the count.
+function iterationCore(it, byId) {
   const R = id => '{#' + id + '}';
   if (!it || (it.kind !== 'iteration' && it.kind !== 'iterationParam'))
     return { skip: 'not an iteration object' };
@@ -702,11 +701,6 @@ function iterationListPlan(it, byId, startId) {
   if (it.parents.length < base + 2) return { skip: 'iteration needs a preimage and its image' };
   const startIt = it.parents[base], img = byId.get(it.parents[base + 1]);
   if (!img) return { skip: 'iteration: image object missing' };
-  // GeoGebra's IterationList only preserves points/numbers: a segment/polygon start
-  // degrades to a list of lengths (verified), so restrict to point/number starts.
-  const so = byId.get(startId);
-  if (!so || !(isPointish(so) || (so.kind === 'free' && !so.coords) || NUM_KINDS.has(so.kind)))
-    return { skip: 'iteration: start is not a point/number (would degrade in GeoGebra)' };
   const ip = planOf(img, byId);
   if (!ip || ip.skip || !ip.exprTpl) return { skip: 'iteration: image not emittable' };
   if (ip.exprTpl.indexOf('{#' + startIt + '}') < 0)
@@ -729,10 +723,26 @@ function iterationListPlan(it, byId, startId) {
     cntTpl = String(n);
   }
   const fTpl = ip.exprTpl.split('{#' + startIt + '}').join('iv');
+  return { fTpl, cntTpl, extra, startIt, args: ip.args || [] };
+}
+
+// GeoGebra's IterationList only preserves point/number values.
+function listOkStart(o) {
+  return !!o && ((typeof isPointish === 'function' && isPointish(o)) ||
+    (o.kind === 'free' && !o.coords) || NUM_KINDS.has(o.kind));
+}
+
+// GSP iteration -> GeoGebra IterationList.  `startId` is the object the list starts from.
+function iterationListPlan(it, byId, startId) {
+  const R = id => '{#' + id + '}';
+  const c = iterationCore(it, byId);
+  if (c.skip) return c;
+  if (!listOkStart(byId.get(startId)))
+    return { skip: 'iteration: start is not a point/number (would degrade in GeoGebra)' };
   return { elem: 'list',
-    exprTpl: 'IterationList(' + fTpl + ',iv,{' + R(startId) + '},' + cntTpl + ')',
-    args: (ip.args || []).concat([startId], extra),
-    warn: 'GSP iteration -> IterationList(f, iv, start, ' + cntTpl + ')' };
+    exprTpl: 'IterationList(' + c.fTpl + ',iv,{' + R(startId) + '},' + c.cntTpl + ')',
+    args: (c.args || []).concat([startId], c.extra),
+    warn: 'GSP iteration -> IterationList(f, iv, start, ' + c.cntTpl + ')' };
 }
 
 // ---------- planning: IR object -> emitable plan ----------
@@ -1301,22 +1311,23 @@ function planOf(o, byId) {
       // parent.
       if (P.length !== 2) return skip('iterate image needs [object, iteration]');
       const it = byId.get(o.parents[1]), x = byId.get(o.parents[0]);
-      // A segment anchored on the iteration's preimage, e.g. the pentagon's edge BB':
-      // GeoGebra's IterationList degrades a segment start to a list of lengths, so rebuild
-      // it from consecutive elements of the (point) iteration list L.
+      // A segment X = Segment(P,Q): GeoGebra's IterationList degrades a segment start, so
+      // rebuild the segment iterates from the two point-iteration lists of P and Q:
+      //   Sequence(Segment(Element(L_P,k), Element(L_Q,k)), k, 1, count)
       if (it && (it.kind === 'iteration' || it.kind === 'iterationParam') && x &&
           SEG_KINDS.has(x.kind) && x.parents.length === 2) {
-        const base = it.kind === 'iterationParam' ? 1 : 0;
-        const startIt = it.parents[base];
-        if (x.parents[0] === startIt || x.parents[1] === startIt) {
-          const lp = iterationListPlan(it, byId, startIt);
-          if (lp && lp.skip) return lp;
-          const L = R(o.parents[1]);
-          return { elem: 'list',
-            exprTpl: 'Sequence(Segment(Element(' + L + ',k),Element(' + L + ',k+1)),k,1,Length(' + L + ')-1)',
-            args: [o.parents[1]],
-            warn: 'segment iterate image -> Sequence over the point-iteration list' };
-        }
+        const c = iterationCore(it, byId);
+        if (c.skip) return c;
+        const Pid = x.parents[0], Qid = x.parents[1];
+        if (!listOkStart(byId.get(Pid)) || !listOkStart(byId.get(Qid)))
+          return skip('segment iterate image: endpoints are not points/numbers');
+        const R2 = id => '{#' + id + '}';
+        const LP = 'IterationList(' + c.fTpl + ',iv,{' + R2(Pid) + '},' + c.cntTpl + ')';
+        const LQ = 'IterationList(' + c.fTpl + ',iv,{' + R2(Qid) + '},' + c.cntTpl + ')';
+        return { elem: 'list',
+          exprTpl: 'Sequence(Segment(Element(' + LP + ',k),Element(' + LQ + ',k)),k,1,' + c.cntTpl + ')',
+          args: [Pid, Qid].concat(c.args || []).concat(c.extra),
+          warn: 'segment iterate image -> Sequence of two point-iteration lists' };
       }
       return iterationListPlan(it, byId, o.parents[0]);
     }

@@ -5,7 +5,7 @@
 > **接手先跑（自检，项目根 = 本目录）**：
 > ```powershell
 > node test/smoke.js                    # 应输出 SMOKE PASSED（无需语料）
-> node tools/emitstats.js "<语料根>"    # 全树 1478 文件基线：objects=407095 emitted=244067 rate=59.95%（2026-10-03）
+> node tools/emitstats.js "<语料根>"    # 全树 1478 文件基线：objects=407095 emitted=244370 rate=60.03%（2026-10-03）
 > node tools/exprcov.js  "<语料根>"     # 2311 解码覆盖率 57079/57112 = 99.9%
 > ```
 > 语料按本机实际路径传入（开发机为 `D:\Program Files (x86)\Sketchpad5`），或设 `GSP_DIR` 环境变量，
@@ -56,6 +56,14 @@
     （加载时由 coords 反解路径参数）。数字（参数）目标还需 GeoGebra 滑块区间才可动画，暂不支持。
 
 ## 当前状态（2026-09-27 建；2026-10-01 交替机续作）
+- ✅ **本机续作（2026-10-03，第十九轮）：线段迭代象改为通用「双点列表」重建。**
+  1. 抽出迭代核心 `iterationCore(it, byId)`（fTpl/次数/args），线段 `X=Segment(P,Q)` 的迭代象
+     → `Sequence(Segment(Element(L_P,k),Element(L_Q,k)),k,1,count)`，其中
+     `L_P=IterationList(f,iv,{P},count)`、`L_Q=…{Q}…`（**内联**，GeoGebra 接受嵌套）。
+     这样不再要求端点落在原象上（上一轮只处理了那种特例）。
+  2. 真机验证：`iter_depth_pentagon` 的 `O_5` 为嵌套 `Sequence(...)`，`ok=True`。
+  3. 全树：**`emitted 244067 → 244370`（rate 59.95% → 60.03%）**，`t77` 发射 269→556。
+     剩余 `t77`：起点非点/数值（2493）、初象不可发射（2432）、初象不依赖原象/多变元（2131）。
 - ✅ **本机续作（2026-10-03，第十八轮）：线段迭代象改用 `Sequence` 重建。**
   1. GeoGebra 的 `IterationList` 对**线段**起点会退化成「一串长度」（列表显示就是长度，但画出来的仍是线段）；
      更稳的做法：由**点迭代列表**重建相邻对 → `Sequence(Segment(Element(L,k),Element(L,k+1)),k,1,Length(L)-1)`。

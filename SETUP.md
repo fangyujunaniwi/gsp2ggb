@@ -157,6 +157,8 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
   → `IterationList(f, iv, {X}, n)`（仅点/数值起点；线段/多边形暂跳过）：**`emitted=243871 rate=59.91%`**（+92）。
 - **2026-10-03 最新基线（全树 `1478` 文件 / `407095` 对象，第十八轮）**：线段迭代象由点列表重建
   `Sequence(Segment(Element(L,k),Element(L,k+1)),k,1,Length(L)-1)`：**`emitted=244067 rate=59.95%`**（+196）。
+- **2026-10-03 最新基线（全树 `1478` 文件 / `407095` 对象，第十九轮）**：线段迭代象通用「双点列表」
+  `Sequence(Segment(Element(L_P,k),Element(L_Q,k)),…)`：**`emitted=244370 rate=60.03%`**（+303）。
 - `tag 2311` 表达式解码覆盖 **57079/57112 = 99.9%**（`node tools/exprcov.js <语料目录>`）。
 - `node test/smoke.js` → `SMOKE PASSED`。
 
