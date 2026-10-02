@@ -45,7 +45,11 @@
     按钮位置用 `<absoluteScreenLocation x= y=>`（相对绘图区像素），显示文字可用 `<caption>` +
     `<labelMode val="3"/>`。5.4 **脚本不会在加载时执行或校验**，只在按钮**被点击**时执行（人工点击已确认），
     出错时弹窗写「脚本第 1 行出错(调用来源: <按钮标签>)」，可见脚本确实绑在该按钮上、按点击触发。
-    实测 `SetCoords(自由点, x, y)` 在 5.4 里运行报「参数不符合规则: 点 B」，故“移动”按钮无可用等价命令。
+    （`命令` 属性表 `org/geogebra/common/jre/properties/command.properties` 证实 `SetCoords` 语法为
+    `[ <Object>, <x>, <y> ]`／`[ <Object>, <x>, <y>, <z> ]`，官方手册补充“点会被移到**最接近的可行位置**”，
+    且对路径上的点/滑块同样生效；公开的工作表也用 `SetCoords(A,x(Player),y(Player))`）。
+    **2026-10-02 修正**：此前记的“`SetCoords` 报错、移动按钮无等价命令”已不成立——当时应是目标点不可移动
+    （如 `Point(路径, 常数)`）所致；现只对**可移动**的源点（自由点或 `Point(路径)`）发 `SetCoords`。
     **动画脚本要能生效**：`GeoPoint.isAnimatable() = isPointOnPath() && isPointerChangeable()`，
     而 `AlgoPointOnPath` 实现 `FixedPathRegionAlgo`、其 `isChangeable() = (param == null)`，
     故 `Point(路径, 常数)` **永远不可动画**；必须发 `Point(路径)`（线上自由点）并用 `<coords>` 定初值
@@ -75,6 +79,19 @@
        GSP **参数**（数字）目标一律跳过——`GeoNumeric.isAnimatable()` 要求
        `isIntervalMinActive() && isIntervalMaxActive()`，我们没写滑块区间，发脚本必报错。
        全语料 `StartAnimation` 调用点 = 140（改前为 0 个可用）。
+- ✅ **本机续作（2026-10-02，第五轮）：`t62` 再补「移动」(kind 3) 与「同时」(kind 7) 两类动作按钮。**
+  1. **kind 7 = `SimultaneousButton`**：父即被触发的按钮，点击时依次对每个父 `handleClick`。发一个
+     `<button>`，其点击脚本**内联**（递归展开，深度上限 8）各存活被触发按钮的脚本
+     （`SetVisibleInView` / `StartAnimation` / `SetCoords`）；被触发按钮被跳过则在级联阶段剔除。
+  2. **kind 3 = `moveAction`**：父为 `[., .]` 成对，`periodicAction` 把每对的**源**拖向**目标**
+     （`source.dragToward(dest)`）。反编译构造器是 `(dest, source)`，但语料实测二进制为**反序**
+     `[source, dest]`（5,137 对第 0 父可拖动、仅 169 对第 1 父可拖动），故按“可拖动者为源”定序；
+     目标取另一者。发 `SetCoords(源, x(目标), y(目标))`。`SetCoords` 已由 `command.properties`
+     （`[<Object>,<x>,<y>]`）与官方手册（“移到最接近的可行位置”，对路径上的点亦生效）确证；
+     上文关键事实 #10 里“`SetCoords` 不可用”的旧记录已更正（当时应是目标点本身不可移动）。
+     源点须可移动（自由点或 `Point(路径)`），目标须是点，否则跳过。
+  3. 该轮覆盖率 **47.64% → 47.91%**（+389；`t62` 发射 3,703 → 4,771）。剩余 `t62` 跳过：
+     目标全被上游跳过（4,421）、移动对源/目标不明（1,432+2,254）、数字目标不可动画（1,218）、滚动按钮（197）。
 - ✅ **本机续作（2026-10-01，第三轮）：修复用户报的 `t.gsp→t.ggb` 两个缺陷（数字变图形 / 坐标轴单位长度错）。**
   1. **坐标轴单位长度错 → `t54` 语义判读错误。** 依据 `ref-ctrl/jsp-samples/*.htm`（JavaSketchpad 真值）：
      `t52`=`UnitPoint`(SimpleUnitPoint，水平单位点)、**`t54`=`SquareUnitPoint`**（由某个单位点平方而来，
@@ -288,10 +305,11 @@
   此前因 `pi` 后的 `<ang>0` 未消费而报 `parse: trailing tokens` 被整类跳过。护栏同时消除了约 1,164 个
   「中心非点」的错误 `Dilate` 输出）。**
   **2026-10-02 续：定性 `t94`＝「点在宿主路径上的相对位置」，发 `PathParameter(p0)`（同宿主·线段/多边形）；
-  并定性 `t35`＝轨迹，发 `Locus(被跟踪点, 驱动点)`：`emitted=189812 rate=47.44%`
-  （187,125→189,812，+2,687；`t94` 发射 810、`t35` 发射 336）。**
+  定性 `t35`＝轨迹，发 `Locus(被跟踪点, 驱动点)`；并补 `t62` 的「移动」(kind 3，`SetCoords`) 与
+  「同时」(kind 7，内联被触发按钮脚本)：`emitted=191708 rate=47.91%`
+  （187,125→191,708，+4,583；`t94` 发射 810、`t35` 发射 336、`t62` 发射 3,036→4,771）。**
   剩余瓶颈（按“根因杠杆”排序）：① 迭代/列表/自定义工具族的级联
-  `t77/89/88/90/24/75/32` ② `point on unsupported path`（4,525）③ `t62` 按钮剩余（11,306）
+  `t77/89/88/90/24/75/32` ② `point on unsupported path`（4,525）③ `t62` 只剩目标被上游跳过/数字目标（4,421+1,432+2,254+1,218）
 - ⏳ 真实未知类型（按新增真值更新）：
   - **`t29`（本机 4,720 条）= `MeasuredAngleRotation`（JSP `Rotation/MeasuredAngle`）**：arity=3，
     父 `[preimage, center, 角度测量]`。**已落地**：marker 为三点角（`t41`/`t113`/`t120`，可被 `t48`

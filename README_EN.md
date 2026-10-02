@@ -125,12 +125,19 @@ the `m-ezekiel/GeometersSketchpad` repository (e.g. `polygon_reflections.gsp`,
   (at offset 12) is the kind: `0` hide, `1` show, `2` animate, `3` move, `4` scroll,
   `7` simultaneous/toggle, `8`/`9` unknown; offsets 20/22 are the button's sketch
   `(left,top)`. Emitted as a GeoGebra `<button>` with a click script (`<ggbscript>`):
-  kind `0`/`1` → `SetVisibleInView(target,1,false/true)`, kind `2` → `StartAnimation(target,true)`.
-  An animate button is kept only for targets GeoGebra can actually animate: a free-on-path point
-  (segment/polygon) or a circle free-on-path point carrying `<coords>` — functions, transformed
-  paths and plain numbers/parameters are skipped (a `GeoNumeric` also needs an active slider
-  interval to be animatable).
-  Kinds `3`/`4`/`7`/`8`/`9` have no faithful GeoGebra equivalent and are skipped.
+  - kind `0`/`1` → `SetVisibleInView(target,1,false/true)`;
+  - kind `2` → `StartAnimation(target,true)`, kept only for targets GeoGebra can actually animate
+    (a free-on-path point on a segment/polygon or a circle point with `<coords>`; functions,
+    transformed paths and plain numbers/parameters are skipped — a `GeoNumeric` also needs an
+    active slider interval);
+  - kind `3` (move) → parents are `[source, destination]` pairs (`moveAction` drags the source
+    toward the destination; the corpus shows the binary is the reverse of the `(dest, source)`
+    constructor), emitted as `SetCoords(source, x(dest), y(dest))` (the manual: the point moves
+    to the closest possible position, also on a path); the source must be movable and the
+    destination a point;
+  - kind `7` (simultaneous) → its parents are the triggered buttons; one button is emitted whose
+    script **inlines** the surviving triggered buttons' scripts;
+  - kinds `4`/`8`/`9` (scroll/unknown) have no faithful equivalent and are skipped.
   **Not** a polygon (the old polygon mis-mapping was removed).
 - `t58`/`t59` = coordinate axes (`Axis4`); `rich[2309]` u32 selects horizontal (1) / vertical (0).
   Emitted as a `Line` through the axis origin. `t52`/`t54`/`t55` = coordinate unit points

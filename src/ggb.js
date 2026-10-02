@@ -106,6 +106,13 @@ function isPointish(o) {
     return isPointish(o._byId ? o._byId.get(o.parents[0]) : null);
   return POINT_KINDS.has(o.kind);
 }
+// GSP `Draggable` objects (a moveAction drags the *source* of each pair toward the
+// *destination*): free points, points-on-path and the coordinate-system unit points.
+function isDraggable(o) {
+  if (!o) return false;
+  if (o.kind === 'free') return !!o.coords;
+  return o.kind === 'pointOnPath' || o.kind === 'unitX' || o.kind === 'squareUnitY' || o.kind === 'rectUnitY';
+}
 function elemTypeOf(o, byId) {
   if (!o) return 'point';
   if (o.kind === 'free') return o.coords ? 'point' : 'numeric';
@@ -379,6 +386,11 @@ function gspPosXY(o, byId, depth) {
 // rather than emitting a script GeoGebra rejects.
 function planIsAnimatable(p) {
   return !!(p && !p.skip && p.elem === 'point' && p.pathXY);
+}
+// A target a GeoGebra script can reposition with SetCoords: a free point or a
+// free-on-path point (both are changeable in GeoGebra).
+function planSettable(p) {
+  return !!(p && !p.skip && p.elem === 'point' && (p.pathXY || (p.free && p.free.xy)));
 }
 function sketchFrame(ir, byId) {
   // Only meaningful (and only safe) when the sketch has a single, unambiguous coordinate
@@ -1065,6 +1077,34 @@ function planOf(o, byId) {
         return { elem: 'button', args: o.parents.slice(),
           btn: { x: bx, y: by, targets: o.parents.slice(), verb: 'animate' } };
       }
+      // kind 7 = simultaneous: its parents are other action buttons; clicking it
+      // clicks each of them (SimultaneousButton.handleClick).  Emit a button whose
+      // click script inlines the (surviving) triggered buttons' scripts.
+      if (b.code === 7)
+        return { elem: 'button', args: o.parents.slice(),
+          btn: { x: bx, y: by, targets: o.parents.slice(), verb: 'simul' } };
+      // kind 3 = move.  moveAction stores the parents as [., .] pairs and drags one
+      // point of each pair (the *source*) toward the other (the *destination*); the
+      // source must be a draggable point, so each pair is ordered by which side is
+      // draggable.  GeoGebra performs the same end state instantly with SetCoords.
+      if (b.code === 3) {
+        if (o.parents.length % 2 !== 0) return skip('move button needs an even target count');
+        const pairs = [];
+        for (let i = 0; i + 1 < o.parents.length; i += 2) {
+          const a = byId.get(o.parents[i]), c = byId.get(o.parents[i + 1]);
+          const da = isDraggable(a), dc = isDraggable(c);
+          // The binary stores the parents as [source, dest] (reverse of moveAction's
+          // (dest, source) constructor): in 5,137 pairs the draggable point is the
+          // even one and in only 169 it is the odd one.  So the draggable side is the
+          // source; when both are draggable the even (source) moves toward the odd.
+          if (da && dc && isPointish(c)) pairs.push([o.parents[i + 1], o.parents[i]]);
+          else if (da && !dc && isPointish(c)) pairs.push([o.parents[i + 1], o.parents[i]]);
+          else if (dc && !da && isPointish(a)) pairs.push([o.parents[i], o.parents[i + 1]]);
+          else return skip('move button pair ambiguous (source/destination)');
+        }
+        return { elem: 'button', args: o.parents.slice(),
+          btn: { x: bx, y: by, pairs, targets: o.parents.slice(), verb: 'move' } };
+      }
       return skip('action button kind ' + b.code + ' (not converted)');
     }
     default: {
@@ -1190,13 +1230,21 @@ function irToGgb(ir) {
       // keep the button as long as one target survives and drop the rest.
       const p2 = plans.get(o.id);
       if (p2 && !p2.skip && p2.elem === 'button' && p2.btn) {
-        let keep = p2.btn.targets.filter(id => byId.has(id) && emit(id));
-        if (p2.btn.verb === 'animate') keep = keep.filter(id => planIsAnimatable(plans.get(id)));
-        if (!keep.length) {
-          plans.set(o.id, { skip: p2.btn.verb === 'animate'
-            ? 'animate button without animatable target' : 'all button targets skipped' });
-          changed = true;
-        } else if (keep.length !== p2.btn.targets.length) p2.btn.targets = keep;
+        if (p2.btn.verb === 'move') {
+          p2.btn.pairs = p2.btn.pairs.filter(([d, s]) => byId.has(d) && byId.has(s) && emit(d) && emit(s) &&
+            isPointish(byId.get(d)) && planSettable(plans.get(s)));
+          if (!p2.btn.pairs.length) { plans.set(o.id, { skip: 'all move targets skipped' }); changed = true; }
+        } else {
+          let keep = p2.btn.targets.filter(id => byId.has(id) && emit(id));
+          if (p2.btn.verb === 'animate') keep = keep.filter(id => planIsAnimatable(plans.get(id)));
+          if (p2.btn.verb === 'simul')
+            keep = keep.filter(id => { const q = plans.get(id); return q && !q.skip && q.elem === 'button' && q.btn; });
+          if (!keep.length) {
+            plans.set(o.id, { skip: p2.btn.verb === 'animate'
+              ? 'animate button without animatable target' : 'all button targets skipped' });
+            changed = true;
+          } else if (keep.length !== p2.btn.targets.length) p2.btn.targets = keep;
+        }
       }
     }
   }
@@ -1232,6 +1280,24 @@ function irToGgb(ir) {
   const warnings = (ir.warnings || []).slice();
   const emitted = [];
   const coordsAll = [];
+  // Recursively build a button's click script.  A simultaneous button inlines the
+  // scripts of the buttons it triggers (GSP SimultaneousButton.handleClick).
+  const buildBtnScript = (p, depth) => {
+    if (!p || !p.btn || depth > 8) return '';
+    if (p.btn.verb === 'simul')
+      return p.btn.targets.map(id => buildBtnScript(plans.get(id), depth + 1)).filter(Boolean).join('\n');
+    if (p.btn.verb === 'move')
+      return p.btn.pairs.map(([d, s]) => {
+        const dt = labels.get(d) || 'undefined_1', st = labels.get(s) || 'undefined_1';
+        return 'SetCoords(' + st + ', x(' + dt + '), y(' + dt + '))';
+      }).join('\n');
+    return p.btn.targets.map(id => {
+      const t = labels.get(id) || 'undefined_1';
+      return p.btn.verb === 'show' ? 'SetVisibleInView(' + t + ',1,true)'
+           : p.btn.verb === 'hide' ? 'SetVisibleInView(' + t + ',1,false)'
+           : 'StartAnimation(' + t + ',true)';
+    }).join('\n');
+  };
   for (const o of ir.objects) {
     const p = plans.get(o.id);
     if (!p || p.skip) { if (o.kind !== 'free' || !o.coords) warnings.push('skip #' + o.id + ' t' + o.srcType + ' ' + o.kind + ': ' + p.skip); continue; }
@@ -1246,12 +1312,7 @@ function irToGgb(ir) {
     // built from the (surviving) targets, so a button never references a
     // dropped object.
     if (p.elem === 'button') {
-      const script = p.btn.targets.map(id => {
-        const t = labels.get(id) || 'undefined_1';
-        return p.btn.verb === 'show' ? 'SetVisibleInView(' + t + ',1,true)'
-             : p.btn.verb === 'hide' ? 'SetVisibleInView(' + t + ',1,false)'
-             : 'StartAnimation(' + t + ',true)';
-      }).join('\n');
+      const script = buildBtnScript(p, 0);
       const gspLabel = String(o.label || '').trim();
       const useCaption = !!gspLabel && gspLabel !== lab;
       let bi = '';
