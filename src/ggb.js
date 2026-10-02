@@ -83,6 +83,18 @@ function straightBaseKind(obj, byId, depth) {
   while (cur && XFORM_KINDS.has(cur.kind) && guard++ < 16) cur = byId.get(cur.parents[0]);
   return cur ? cur.kind : null;
 }
+// Does object `fromId` transitively depend on `targetId`?
+function dependsOn(fromId, targetId, byId) {
+  const seen = new Set(); const stack = [fromId];
+  while (stack.length) {
+    const id = stack.pop();
+    if (id === targetId) return true;
+    if (seen.has(id)) continue; seen.add(id);
+    const o = byId.get(id); if (!o) continue;
+    for (const p of o.parents) stack.push(p);
+  }
+  return false;
+}
 const CIRC_KINDS = new Set(['circleOn', 'circleRadiusSeg', 'circleRadiusObj']);
 const NUM_KINDS = new Set(['measureDistance', 'measureLengthSeg', 'measureSlope',
   'deltaX', 'deltaY', 'calc', 'angleMeasure', 'angle', 'angleValue', 'ratioMeasure']);
@@ -931,6 +943,26 @@ function planOf(o, byId) {
       if (!P.every(isPointish)) return skip('polygon vertices must all be points');
       return { elem: 'polygon', exprTpl: 'Polygon(' + o.parents.map(R).join(',') + ')', args: o.parents };
     }
+    case 'locus': {
+      // t35 = Sampler/gPointLocus.  GSP serialises the parents as
+      //   [tracedPoint, moverPath, moverPoint, ...dependency closure..., tracedPoint]
+      // (the Sampler constructor is (movePoint, movePath, traceGObj) and its toString is
+      // "Locus of trace as move moves"; the binary order is the reverse, as verified on
+      // the corpus: mover = parents[2] is a point-on-path whose host is parents[1], and
+      // parents[0] transitively depends on it in 2,516 / 3,114 cases).  GeoGebra's
+      // equivalent is Locus(<traced Q>, <mover P on an object>).
+      if (P.length < 3) return skip('locus needs traced + path + mover');
+      const traced = P[0], mover = P[2];
+      if (!isPointish(traced)) return skip('locus: traced object is not a point');
+      if (!mover || mover.kind !== 'pointOnPath' || mover.parents[0] !== o.parents[1])
+        return skip('locus: mover is not a point on its stated path');
+      if (o.parents.some(p => { const q = byId.get(p); return q && q.srcType === 35; }))
+        return skip('locus of a locus');
+      if (!dependsOn(o.parents[0], o.parents[2], byId))
+        return skip('locus: traced point does not depend on the mover');
+      return { elem: 'locus', exprTpl: 'Locus(' + R(o.parents[0]) + ',' + R(o.parents[2]) + ')',
+        args: [o.parents[0], o.parents[2]], warn: 'locus (Sampler): Locus(traced, mover)' };
+    }
     case 'angleMeasure':
     case 'angle':
       if (P.length === 3 && P.every(isPointish))
@@ -1271,7 +1303,7 @@ function irToGgb(ir) {
       if (!dep) inner += '\t<symbolic val="true" />\n';
     } else if (p.elem === 'text') {
       inner += '\t<font serif="false" sizeM="1.1428571428571428" size="2" style="0"/>\n';
-    } else if (p.elem === 'segment' || p.elem === 'line' || p.elem === 'conic' || p.elem === 'polygon' || p.elem === 'function') {
+    } else if (p.elem === 'segment' || p.elem === 'line' || p.elem === 'conic' || p.elem === 'polygon' || p.elem === 'function' || p.elem === 'locus') {
       inner += '\t<lineStyle thickness="3" type="0" typeHidden="1" opacity="255"/>\n';
       if (p.elem === 'polygon') inner += '\t<fillType type="0" opacity="128"/>\n';
     }

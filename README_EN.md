@@ -278,6 +278,13 @@ node tools\jspextract.js page.htm --out o.json
   GSP **function** (type 71), **derivative** (type 78) and free-number **function** objects are
   emitted as GeoGebra `Function` objects; **plots** (type 72) are skipped because GeoGebra draws the
   function itself.
+- **GSP5 iteration / list / custom-tool objects** (`t77`/`t89`/`t88`/`t90`/`t24`/`t75`/`t32`) are skipped:
+  `t77`+`t89` = iteration step / list data (`t88` = the produced point), `t32`/`t75` = custom-tool/iteration
+  instances, `t24` = suspected fixed-angle/marked-distance translation. JavaSketchpad inlines these, so there
+  is no truth table to match against — **not guessed**. **`t35` = a locus is now mapped** from the decompiled
+  `Sampler/gPointLocus` (parent order `[traced point, mover path, mover point, …]`) to GeoGebra
+  `Locus(traced, mover)` (mover must lie on its path; nested loci and traced points not depending on the
+  mover are skipped).
 - Objects that still need unmapped `2311` values of measures/`t90` are skipped
   (with cascading dependents). **`t94` = a `PointOnObject`'s position along its host path**: when the
   point is a `pointOnPath` on its *own* host path and that host is a segment/polygon (incl. affine

@@ -119,6 +119,7 @@ const TYPES = {
   31: { k: 'segRatioDilate' },  // preimage + center + numSeg + denomSeg (Dilation2S)
   33: { k: 'markedRatioDilate' }, // preimage + center + ratio-measure (DilationMR)
   34: { k: 'reflectImage' },    // preimage + mirror (line/segment/point): Reflection
+  35: { k: 'locus' },           // Sampler/gPointLocus: traced point + mover path + mover (+ deps)
   36: { k: 'measureLengthSeg' },// length of segment (label a/b/c/d)
   37: { k: 'measureDistance' }, // distance point-point (label a/b/c/d)
   41: { k: 'angleMeasure' },    // 3 points, middle = vertex (Angle ABC)
