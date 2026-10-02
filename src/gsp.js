@@ -150,8 +150,8 @@ const TYPES = {
   69: { k: 'plotXY' },          // PlotXY: point at (xExpr,yExpr) in a coordinate system
   70: { k: 'plotXY' },          // PlotXY variant (same [xExpr,yExpr,coordSys] shape)
   79: { k: 'arc' },             // circle arc between two points: [conic, point, point]
-  80: { k: 'arc' },
-  81: { k: 'arc' },
+  80: { k: 'arc' },             // arc variant [centre?, point, point] — direction unverified, still skipped
+  81: { k: 'circle3Points' },   // circle through three points (verified by render)
   87: { k: 'measureSlope' },    // slope of segment (2nd parent = value ref, ignored)
   94: { k: 'pathParam' },       // point's relative position along its host path (PointOnObject)
   113:{ k: 'angle' },           // 3 points, middle = vertex (geometric angle)

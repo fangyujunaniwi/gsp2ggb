@@ -1011,6 +1011,16 @@ function planOf(o, byId) {
       }
       return skip('arc needs conic + 2 points');
     }
+    case 'circle3Points': {
+      // t81 = a circle through three points.  Verified 2026-10-03 by rendering the
+      // user's control sketch arc_center_two_points.gsp: the t81 object is a *complete*
+      // circumcircle through its three point parents (P, O, Q all lie on it, no arc
+      // endpoints).  GeoGebra's Circle(P,Q,R) builds the same circumcircle.
+      if (P.length === 3 && P.every(isPointish))
+        return { elem: 'conic', exprTpl: 'Circle(' + o.parents.map(R).join(',') + ')', args: o.parents,
+          warn: 'circle through three points (t81)' };
+      return skip('circle through three points needs 3 points');
+    }
     case 'polygon': {
       if (P.length < 3) return skip('polygon needs >=3 vertices');
       if (!P.every(isPointish)) return skip('polygon vertices must all be points');

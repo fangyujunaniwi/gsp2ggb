@@ -5,7 +5,7 @@
 > **接手先跑（自检，项目根 = 本目录）**：
 > ```powershell
 > node test/smoke.js                    # 应输出 SMOKE PASSED（无需语料）
-> node tools/emitstats.js "<语料根>"    # 全树 1478 文件基线：objects=407095 emitted=236087 rate=57.99%（2026-10-03）
+> node tools/emitstats.js "<语料根>"    # 全树 1478 文件基线：objects=407095 emitted=238455 rate=58.57%（2026-10-03）
 > node tools/exprcov.js  "<语料根>"     # 2311 解码覆盖率 57079/57112 = 99.9%
 > ```
 > 语料按本机实际路径传入（开发机为 `D:\Program Files (x86)\Sketchpad5`），或设 `GSP_DIR` 环境变量，
@@ -56,6 +56,15 @@
     （加载时由 coords 反解路径参数）。数字（参数）目标还需 GeoGebra 滑块区间才可动画，暂不支持。
 
 ## 当前状态（2026-09-27 建；2026-10-01 交替机续作）
+- ✅ **本机续作（2026-10-03，第十一轮）：用弧真值草图定性 `t79`/`t80`/`t81`，落地 `t81`。**
+  1. 用户在 `ref-ctrl/jsp-samples/` 制作了 `arc_circle_PQ.gsp`、`arc_circle_QP.gsp`、
+     `arc_center_two_points.gsp`（**JSP 不导出弧，`Sketch.java` 无 `Arc`，故只存 `.gsp` + 渲染**）。
+  2. **`t79` = 圆上的弧**：父 `[圆, P1, P2]`，**P1/P2=选择顺序**（PQ/QP 两图的父序随选择翻转），
+     渲染方向与 GeoGebra `Arc(conic,P1,P2)` 的逆时针约定**一致** → 现有映射正确（无需改）。
+  3. **`t81` = 过三点的圆**：父 `[P1,P2,P3]`，渲染是**完整外接圆**（非弧）→ 发
+     `Circle(P1,P2,P3)`。**已落地**（受控样例 `O_2 = Circle(O,P,Q)`，真机 GeoGebra `ok=True`）。
+  4. **`t80`**：`arcprobe` 实测 parents[0] 与 P1/P2 **等距**（=圆心），但**方向未验证** → 暂不发射。
+  5. 全树复测：**`emitted 236087 → 238455`（rate 57.99% → 58.57%，+2,368）**；`smoke` +1 断言。
 - ✅ **本机续作（2026-10-03，第十轮）：`t15` 新增「变换后的圆」上的点。**
   1. `point on unsupported path` 的 4,641 条中，约 700 条的路径是**变换后的圆**
      （`rotateImage`/`translateImage`/`implicitRotate`，基类型 `circleOn`/`circleRadiusObj`），

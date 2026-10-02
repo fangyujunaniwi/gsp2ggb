@@ -135,6 +135,9 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
 - **2026-10-03 最新基线（全树 `1478` 文件 / `407095` 对象，第十轮）**：`t15` 新增「变换后的圆」上的点
   （沿 `XFORM_KINDS` 解包基类型为圆 → `Point(<变换后的圆>)`，位置交给 GeoGebra）：
   **`emitted=236087 rate=57.99%`**（`t15` 发射 10,858→11,668，`point on unsupported path` 4,641→3,853）。
+- **2026-10-03 最新基线（全树 `1478` 文件 / `407095` 对象，第十一轮）**：用弧真值草图定性 `t79/t80/t81`
+  ——`t79`=圆上的弧（已正确）、`t81`=**过三点的圆**（新落地 `Circle(P1,P2,P3)`）、`t80` 方向未验证暂不发：
+  **`emitted=238455 rate=58.57%`**（+2,368）。
 - `tag 2311` 表达式解码覆盖 **57079/57112 = 99.9%**（`node tools/exprcov.js <语料目录>`）。
 - `node test/smoke.js` → `SMOKE PASSED`。
 
