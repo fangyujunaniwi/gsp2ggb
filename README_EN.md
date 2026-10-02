@@ -98,7 +98,11 @@ the `m-ezekiel/GeometersSketchpad` repository (e.g. `polygon_reflections.gsp`,
   performs, so it is emitted straight through. Reflections whose mirror is an affine image of a
   line/segment rebuild the mirror's supporting line.
 - `t41` / `t113` = angle (3 points, middle = vertex) → `Angle(A,B,C)`; `t120` = its measurement.
-- `t64` = circle (center + on-point or radius segment) → `Circle(...)`.
+- `t3`/`t4`/`t64` = circle (**center + on-point / radius segment / radius number**) → `Circle(...)`.
+  GSP's parent order is not fixed (a radius measure often comes first), while GeoGebra's `Circle`
+  syntax requires the **first argument to be a point** (`[<Point>, <Radius Number>|<Segment>|<Point>]`),
+  so whichever of the two parents is a point becomes the center; if neither is, the circle is skipped
+  (2026-10-02 fix: previously always using `parents[0]` emitted illegal `Circle(number, point)` circles).
 - `t17` = fixed-offset point (parent + pixel offset `(dx,dy)`, y-down) → `(parent)+(dx/50,-dy/50)`.
 - `t15` on a circle stores the position as a **(cos,sin) unit direction** (**y-up**, whereas point
   coordinates are y-down) or as a single parameter (animation state, not a decodable position);

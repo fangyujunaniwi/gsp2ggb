@@ -644,17 +644,24 @@ function planOf(o, byId) {
       if (P.length === 1) return { elem: 'point', exprTpl: 'Midpoint(' + R(o.parents[0]) + ')', args: o.parents };
       return skip('midpoint needs 1-2 parents');
     case 'circleOn':
-      if (P.length === 2) return { elem: 'conic', exprTpl: 'Circle(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ')', args: o.parents };
-      return skip('circle needs 2 parents');
     case 'circleRadiusSeg':
-      if (P.length === 2) return { elem: 'conic', exprTpl: 'Circle(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ')', args: o.parents };
-      return skip('circle needs center+segment');
-    case 'circleRadiusObj':
-      if (P.length === 2 && SEG_KINDS.has(P[1].kind))
-        return { elem: 'conic', exprTpl: 'Circle(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ')', args: o.parents };
-      if (P.length === 2 && isPointish(P[1]))
-        return { elem: 'conic', exprTpl: 'Circle(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ')', args: o.parents };
-      return skip('radius object unsupported (vector radius)');
+    case 'circleRadiusObj': {
+      // GSP stores a circle as (center, radius ref); the radius ref may be a point
+      // (circle through a point), a segment, or a measure.  GeoGebra's Circle wants
+      // Circle(<Point>, <Point>|<Segment>|<Radius Number>), so the centre must be the
+      // point parent — which is not always parent 0 (a radius measure can come first).
+      if (P.length !== 2) return skip('circle needs 2 parents');
+      const a = P[0], b = P[1];
+      let cId, rId, rObj;
+      if (isPointish(a)) { cId = o.parents[0]; rId = o.parents[1]; rObj = b; }
+      else if (isPointish(b)) { cId = o.parents[1]; rId = o.parents[0]; rObj = a; }
+      else return skip('circle: no point centre');
+      const rp = planOf(rObj, byId);
+      if (!rp || rp.skip || !(rp.elem === 'point' || rp.elem === 'segment' || rp.elem === 'numeric'))
+        return skip('circle: radius argument is not a point/segment/number');
+      return { elem: 'conic', exprTpl: 'Circle(' + R(cId) + ',' + R(rId) + ')', args: [cId, rId],
+        warn: (cId === o.parents[1]) ? 'circle centre was the second parent (radius first)' : undefined };
+    }
     case 'perpLine':
       if (P.length === 2) return { elem: 'line', exprTpl: 'PerpendicularLine(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ')', args: o.parents };
       return skip('perp line needs 2 parents');
