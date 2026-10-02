@@ -146,6 +146,8 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
   **`emitted=242390 rate=59.54%`**（+627）。
 - **2026-10-03 最新基线（全树 `1478` 文件 / `407095` 对象，第十三轮）**：`t95` = 路径上按参数取点
   （线段子集）→ `Point(线段, 值)`：**`emitted=243360 rate=59.78%`**（+970）。
+- **2026-10-03 最新基线（全树 `1478` 文件 / `407095` 对象，第十四轮）**：迭代族调查（待真值）+
+  `gspPosXY` 补 `intersectLL` 与 `line2pt` 上的点（位置保真）：**`emitted=243388 rate=59.79%`**（+28）。
 - `tag 2311` 表达式解码覆盖 **57079/57112 = 99.9%**（`node tools/exprcov.js <语料目录>`）。
 - `node test/smoke.js` → `SMOKE PASSED`。
 

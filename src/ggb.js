@@ -368,6 +368,12 @@ function gspPosXY(o, byId, depth) {
       const b = gspPosXY(byId.get(path.parents[1]), byId, (depth || 0) + 1);
       if (a && b) return { x: a.x + t * (b.x - a.x), y: a.y + t * (b.y - a.y) };
     }
+    if (LINE_KINDS.has(path.kind)) {
+      // GSP stores the point's parameter relative to the line's reference pair, which for a
+      // `line2pt` is just its two defining points (same convention as the t15 emitter).
+      const pl = straightPts(path, byId, depth || 0);
+      if (pl) return { x: pl.a.x + t * (pl.b.x - pl.a.x), y: pl.a.y + t * (pl.b.y - pl.a.y) };
+    }
     if (path.kind === 'polygon' && path.parents.length >= 3) {
       // GSP stores offset = edgeIndex + φ; walk that edge by the fractional part.
       const n = path.parents.length, off = ((t % n) + n) % n;
@@ -375,6 +381,21 @@ function gspPosXY(o, byId, depth) {
       const a = gspPosXY(byId.get(path.parents[e]), byId, (depth || 0) + 1);
       const b = gspPosXY(byId.get(path.parents[(e + 1) % n]), byId, (depth || 0) + 1);
       if (a && b) return { x: a.x + f * (b.x - a.x), y: a.y + f * (b.y - a.y) };
+    }
+    return null;
+  }
+  if (o.kind === 'intersectLL' && o.parents.length === 2) {
+    // line-line intersection is unique; both straights must be `segment`/`line2pt`.
+    const l1 = straightPts(byId.get(o.parents[0]), byId, depth || 0);
+    const l2 = straightPts(byId.get(o.parents[1]), byId, depth || 0);
+    if (l1 && l2) {
+      const d1 = { x: l1.b.x - l1.a.x, y: l1.b.y - l1.a.y };
+      const d2 = { x: l2.b.x - l2.a.x, y: l2.b.y - l2.a.y };
+      const den = d1.x * d2.y - d1.y * d2.x;
+      if (Math.abs(den) > 1e-9) {
+        const t = ((l2.a.x - l1.a.x) * d2.y - (l2.a.y - l1.a.y) * d2.x) / den;
+        return { x: l1.a.x + t * d1.x, y: l1.a.y + t * d1.y };
+      }
     }
     return null;
   }
@@ -433,6 +454,19 @@ function gspPosXY(o, byId, depth) {
       if (p && mp) return { x: 2 * mp.x - p.x, y: 2 * mp.y - p.y };
     }
     return null;
+  }
+  return null;
+}
+
+// File-coordinate endpoints of a straight object, for gspPosXY.  Only segment / line2pt
+// (their defining endpoints); derived straights (perp/parallel/bisector) are not resolved.
+function straightPts(o, byId, depth) {
+  const d = (depth || 0) + 1;
+  if (!o || d > 24) return null;
+  if ((o.kind === 'segment' || o.kind === 'line2pt') && o.parents.length >= 2) {
+    const a = gspPosXY(byId.get(o.parents[0]), byId, d);
+    const b = gspPosXY(byId.get(o.parents[1]), byId, d);
+    if (a && b) return { a, b };
   }
   return null;
 }
