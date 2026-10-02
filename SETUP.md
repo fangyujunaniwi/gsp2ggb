@@ -144,6 +144,8 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
 - **2026-10-03 最新基线（全树 `1478` 文件 / `407095` 对象，第十二轮）**：`gspPosXY` 支持变换点
   （t16/t21/t27/t30/t17、点镜 t34），圆上点位置保真；顺带让动画按钮更多可挂：
   **`emitted=242390 rate=59.54%`**（+627）。
+- **2026-10-03 最新基线（全树 `1478` 文件 / `407095` 对象，第十三轮）**：`t95` = 路径上按参数取点
+  （线段子集）→ `Point(线段, 值)`：**`emitted=243360 rate=59.78%`**（+970）。
 - `tag 2311` 表达式解码覆盖 **57079/57112 = 99.9%**（`node tools/exprcov.js <语料目录>`）。
 - `node test/smoke.js` → `SMOKE PASSED`。
 

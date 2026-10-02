@@ -100,7 +100,7 @@ const CIRC_KINDS = new Set(['circleOn', 'circleRadiusSeg', 'circleRadiusObj']);
 const NUM_KINDS = new Set(['measureDistance', 'measureDistPtLine', 'measureCoordDistance',
   'measureLengthSeg', 'measureSlope', 'measurePerimeter', 'measureCircumference', 'measureArea', 'measureRadius',
   'measureArcAngle', 'measureArcLength',
-  'abscissa', 'ordinate', 'angleMeasure', 'angle', 'angleValue', 'ratioMeasure']);
+  'abscissa', 'ordinate', 'angleMeasure', 'angle', 'angleValue', 'ratioMeasure', 'pathParam']);
 
 function isPointish(o) {
   if (!o) return false;
@@ -1189,6 +1189,24 @@ function planOf(o, byId) {
             warn: 'point position along its path (PathParameter)' };
       }
       return skip('point-position measure: unsupported host');
+    }
+    case 'pointAtParam': {
+      // t95 = a point on a path at the parameter given by the other parent.  Verified with
+      // 滑块变速.gsp and 可控虫子(inRm).gsp: parents are [value, path] (e.g. [t94 path
+      // position of Q on one segment, another segment]) and the image is the point on
+      // <path> at <value>.  Only segments are emitted: GeoGebra's segment path parameter
+      // equals GSP's φ ∈ [0,1].  Other hosts (polygon/circle/arc/locus) are left for
+      // verification rather than guessed.
+      if (P.length !== 2) return skip('point at a parameter needs a value + a path');
+      const isSeg = x => x && SEG_KINDS.has(x.kind);
+      let pathId = null, valObj = null;
+      if (isSeg(P[1]) && !isSeg(P[0])) { pathId = o.parents[1]; valObj = P[0]; }
+      else if (isSeg(P[0]) && !isSeg(P[1])) { pathId = o.parents[0]; valObj = P[1]; }
+      else return skip('point at a parameter: cannot tell path from value');
+      const v = markerNumeric(valObj, byId);
+      if (!v) return skip('point at a parameter: value not decodable');
+      return { elem: 'point', exprTpl: 'Point(' + R(pathId) + ',' + v.exprTpl + ')',
+        args: [pathId].concat(v.args), warn: 'point on a segment at a parameter (t95)' };
     }
     case 'ratioMeasure': {
       const r = ratioTemplate(o, byId);

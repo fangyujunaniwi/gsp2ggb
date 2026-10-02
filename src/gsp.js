@@ -154,6 +154,7 @@ const TYPES = {
   81: { k: 'arc3Points' },       // arc through three points (GSP "arc through 3 points" tool)
   87: { k: 'measureSlope' },    // slope of segment (2nd parent = value ref, ignored)
   94: { k: 'pathParam' },       // point's relative position along its host path (PointOnObject)
+  95: { k: 'pointAtParam' },    // point on a path at a parameter given by the other parent
   113:{ k: 'angle' },           // 3 points, middle = vertex (geometric angle)
   120:{ k: 'angleValue' }       // measurement of an angle object (parent = t113)
 };

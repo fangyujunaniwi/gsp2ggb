@@ -261,6 +261,25 @@ if (fs.existsSync(circSrc)) {
     !!m && /^8\.94/.test(m[1]), m ? (m[1] + ',' + m[2]) : 'no coords');
 }
 
+// --- t95 = a point on a path at a parameter given by a sibling value object
+//     (verified with 滑块变速.gsp: [t94 path-position, segment] -> Point(seg, param)). ---
+{
+  const sIR = { objects: [
+    { id: 1, kind: 'free', parents: [], params: [], coords: { x: 0, y: 0 }, label: 'A', srcType: 0 },
+    { id: 2, kind: 'free', parents: [], params: [], coords: { x: 100, y: 0 }, label: 'B', srcType: 0 },
+    { id: 3, kind: 'segment', parents: [1, 2], params: [], label: 's', srcType: 2 },
+    { id: 4, kind: 'pointOnPath', parents: [3], params: [0.25], label: 'Q', srcType: 15 },
+    { id: 5, kind: 'free', parents: [], params: [], coords: { x: 0, y: 100 }, label: 'L', srcType: 0 },
+    { id: 6, kind: 'free', parents: [], params: [], coords: { x: 100, y: 100 }, label: 'M', srcType: 0 },
+    { id: 7, kind: 'segment', parents: [5, 6], params: [], label: 't', srcType: 2 },
+    { id: 8, kind: 'pathParam', parents: [4, 3], params: [], label: 'p', srcType: 94 },
+    { id: 9, kind: 'pointAtParam', parents: [8, 7], params: [], label: 'R', srcType: 95 },
+  ], warnings: [] };
+  const sx = unzip(irToGgb(sIR).buf).get('geogebra.xml').toString('utf8');
+  const e9 = (sx.match(/<expression label="R" exp="([^"]*)"/) || [])[1];
+  check('t95 -> Point(segment, PathParameter(point))', e9 === 'Point(t,PathParameter(Q))', e9);
+}
+
 // --- t81 = the GSP "arc through three points" tool (user control sketch: clicking
 //     O, P, Q stores [O,P,Q]); GeoGebra's CircularArc(P,Q,R) = arc P->R through Q. ---
 {
