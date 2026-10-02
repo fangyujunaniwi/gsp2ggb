@@ -153,6 +153,8 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
   大头 `t89` 深度迭代尚需真值）。
 - **2026-10-03 最新基线（全树 `1478` 文件 / `407095` 对象，第十六轮）**：`t89` 深度迭代
   `[次数参数, 原象, 初象, …]` → `IterationList`（次数须为常量）：**`emitted=243779 rate=59.88%`**（+367）。
+- **2026-10-03 最新基线（全树 `1478` 文件 / `407095` 对象，第十七轮）**：`t77` 迭代象
+  → `IterationList(f, iv, {X}, n)`（仅点/数值起点；线段/多边形暂跳过）：**`emitted=243871 rate=59.91%`**（+92）。
 - `tag 2311` 表达式解码覆盖 **57079/57112 = 99.9%**（`node tools/exprcov.js <语料目录>`）。
 - `node test/smoke.js` → `SMOKE PASSED`。
 

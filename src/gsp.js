@@ -151,6 +151,7 @@ const TYPES = {
   70: { k: 'plotXY' },          // PlotXY variant (same [xExpr,yExpr,coordSys] shape)
   76: { k: 'iteration' },      // GSP iteration x_{k+1}=f(x_k): parents [preimage, image, ...]; count in tag 2314 +16
   89: { k: 'iterationParam' }, // iteration with the count as parents[0] (depth iteration): [count, preimage, image, ...]
+  77: { k: 'iterateImage' },   // iterate image: parents [object X, iteration] -> the iterates of X
   79: { k: 'arc' },             // circle arc between two points: [conic, point, point]
   80: { k: 'arcCenter' },       // arc of the circle centred at parents[0] through P1,P2
   81: { k: 'arc3Points' },       // arc through three points (GSP "arc through 3 points" tool)

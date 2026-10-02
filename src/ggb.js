@@ -691,6 +691,50 @@ function straightRef(obj, byId, R) {
   return r ? { p1: r.p1, p2: r.p2, ids: [...new Set(ids)] } : null;
 }
 
+// GSP iteration -> GeoGebra IterationList.  `it` is a t76 (fixed count in tag-2314 +16)
+// or t89 (count as parents[0]); `startId` is the object the list starts from (the
+// iteration's preimage for t76/t89 themselves, or the t77 own object X).
+function iterationListPlan(it, byId, startId) {
+  const R = id => '{#' + id + '}';
+  if (!it || (it.kind !== 'iteration' && it.kind !== 'iterationParam'))
+    return { skip: 'not an iteration object' };
+  const base = it.kind === 'iterationParam' ? 1 : 0;
+  if (it.parents.length < base + 2) return { skip: 'iteration needs a preimage and its image' };
+  const startIt = it.parents[base], img = byId.get(it.parents[base + 1]);
+  if (!img) return { skip: 'iteration: image object missing' };
+  // GeoGebra's IterationList only preserves points/numbers: a segment/polygon start
+  // degrades to a list of lengths (verified), so restrict to point/number starts.
+  const so = byId.get(startId);
+  if (!so || !(isPointish(so) || (so.kind === 'free' && !so.coords) || NUM_KINDS.has(so.kind)))
+    return { skip: 'iteration: start is not a point/number (would degrade in GeoGebra)' };
+  const ip = planOf(img, byId);
+  if (!ip || ip.skip || !ip.exprTpl) return { skip: 'iteration: image not emittable' };
+  if (ip.exprTpl.indexOf('{#' + startIt + '}') < 0)
+    return { skip: 'iteration: image does not depend on the preimage (multi-variable?)' };
+  let cntTpl = null; const extra = [];
+  if (base === 1) {
+    const cId = it.parents[0];
+    const inBody = (ip.args || []).indexOf(cId) >= 0 || ip.exprTpl.indexOf('{#' + cId + '}') >= 0;
+    if (inBody) {
+      // GeoGebra rejects an IterationList whose count variable also appears in the body.
+      const cp = planOf(byId.get(cId), byId);
+      const cv = cp && cp.free && Number.isFinite(cp.free.value) ? cp.free.value : null;
+      if (cv == null) return { skip: 'iteration: count appears in the body and is not a constant' };
+      cntTpl = fmt(cv);
+    } else { cntTpl = R(cId); extra.push(cId); }
+  } else {
+    const rec = (it._raw && it._raw.rich && it._raw.rich[2314]) || null;
+    const n = rec && rec.length >= 20 ? rec.readUInt32LE(16) : null;
+    if (!(n > 0)) return { skip: 'iteration: count not decoded (tag 2314 +16)' };
+    cntTpl = String(n);
+  }
+  const fTpl = ip.exprTpl.split('{#' + startIt + '}').join('iv');
+  return { elem: 'list',
+    exprTpl: 'IterationList(' + fTpl + ',iv,{' + R(startId) + '},' + cntTpl + ')',
+    args: (ip.args || []).concat([startId], extra),
+    warn: 'GSP iteration -> IterationList(f, iv, start, ' + cntTpl + ')' };
+}
+
 // ---------- planning: IR object -> emitable plan ----------
 // plan = { skip: why } | { elem, exprTpl?, args?, free:{xy|value}, label?, warn? }
 // exprTpl uses {#id} tokens replaced with final labels.
@@ -1250,39 +1294,13 @@ function planOf(o, byId) {
       // f is the construction mapping 原象 to 初象, so emit GeoGebra
       // IterationList(f, iv, {start}, count) with the preimage replaced by the variable iv.
       const base = o.kind === 'iterationParam' ? 1 : 0;
-      if (P.length < base + 2) return skip('iteration needs a preimage and its image');
-      const startId = o.parents[base], img = byId.get(o.parents[base + 1]);
-      if (!img) return skip('iteration: image object missing');
-      const ip = planOf(img, byId);
-      if (!ip || ip.skip || !ip.exprTpl) return skip('iteration: image not emittable');
-      if (ip.exprTpl.indexOf('{#' + startId + '}') < 0)
-        return skip('iteration: image does not depend on the preimage (multi-variable?)');
-      let cntTpl = null;
-      const extra = [];
-      if (base === 1) {
-        const cId = o.parents[0];
-        const inBody = (ip.args || []).indexOf(cId) >= 0 ||
-          ip.exprTpl.indexOf('{#' + cId + '}') >= 0;
-        if (inBody) {
-          // GeoGebra rejects an IterationList whose count variable also appears in the
-          // body (verified: rotate-by-(360/n) iterated n times fails, literal n works),
-          // so fall back to the count's constant value when it has one.
-          const cp = planOf(byId.get(cId), byId);
-          const cv = cp && cp.free && Number.isFinite(cp.free.value) ? cp.free.value : null;
-          if (cv == null) return skip('iteration: count appears in the body and is not a constant');
-          cntTpl = fmt(cv);
-        } else { cntTpl = R(cId); extra.push(cId); }
-      } else {
-        const rec = (o._raw && o._raw.rich && o._raw.rich[2314]) || null;
-        const n = rec && rec.length >= 20 ? rec.readUInt32LE(16) : null;
-        if (!(n > 0)) return skip('iteration: count not decoded (tag 2314 +16)');
-        cntTpl = String(n);
-      }
-      const fTpl = ip.exprTpl.split('{#' + startId + '}').join('iv');
-      return { elem: 'list',
-        exprTpl: 'IterationList(' + fTpl + ',iv,{' + R(startId) + '},' + cntTpl + ')',
-        args: (ip.args || []).concat([startId], extra),
-        warn: 'GSP iteration -> IterationList(f, iv, start, ' + cntTpl + ')' };
+      return iterationListPlan(o, byId, o.parents[base]);
+    }
+    case 'iterateImage': {
+      // t77 = the iterates of its first parent X under the iteration given by its second
+      // parent: the same f, starting from X -> IterationList(f, iv, {X}, count).
+      if (P.length !== 2) return skip('iterate image needs [object, iteration]');
+      return iterationListPlan(byId.get(o.parents[1]), byId, o.parents[0]);
     }
     case 'ratioMeasure': {
       const r = ratioTemplate(o, byId);
