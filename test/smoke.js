@@ -180,6 +180,30 @@ if (fs.existsSync(circSrc)) {
     /^Point\(.+\)$/.test(qExpr || '') && !qHasCoords, qExpr + (qHasCoords ? ' +coords' : ''));
 }
 
+// --- t21 = PolarTranslation (NOT a rotation): the image is the parent translated by a
+//     fixed vector.  tag-2003 layout: +4 p0=-sinθ, +12 p1=cosθ, +32 d1=distance in file
+//     units (the same units as coordinates, so it is scaled by SCALE/frame).  This also
+//     guards the number formatter: GeoGebra reads 'e' as Euler's number, so "4.6e-17"
+//     would be parsed as 4.6*e-17 — scientific notation must never be emitted. ---
+{
+  const buf = Buffer.alloc(60);
+  buf.writeDoubleLE(96 / 2.54, 32);                  // d1 = 1 cm = 37.79527559055118 file units
+  const sIR = { objects: [
+    { id: 1, kind: 'free', parents: [], params: [], coords: { x: 100, y: 100 }, label: 'A', srcType: 0 },
+    { id: 2, kind: 'implicitRotate', parents: [1], params: [-1, 6.123233995736766e-17, 90],
+      label: 'A_2', srcType: 21, _raw: { paramRaw: buf } },
+    { id: 3, kind: 'free', parents: [], params: [], coords: { x: 1e24, y: 0 }, label: 'B', srcType: 0 },
+  ], warnings: [] };
+  const sx = unzip(irToGgb(sIR).buf).get('geogebra.xml').toString('utf8');
+  const e2 = (sx.match(/<expression label="A_2" exp="([^"]*)"/) || [])[1];
+  check('t21 polar translation -> Translate by a fixed vector (θ=90°, 1cm -> (0,0.756))',
+    e2 === 'Translate(A,Vector((0,0.755905511811)))', e2);
+  const bCo = sx.match(/<element type="point" label="B">[\s\S]*?<coords x="([^"]*)" y="([^"]*)"/) || [];
+  check('numbers never use scientific notation (GeoGebra reads e as Euler\'s number)',
+    !/[0-9]e[-+]?[0-9]/i.test(e2 || '') && bCo[1] === '20000000000000000000000',
+    'A_2=' + e2 + ' B.x=' + bCo[1]);
+}
+
 // --- TUI helpers (src/tui-util.js) and job pipeline (bin/tui.js) ---
 check('tui: recognises .gsp/.ggb', U.isConvertible('a.gsp') && U.isConvertible('B.GGB') && !U.isConvertible('a.txt'));
 check('tui: default output swaps the extension',

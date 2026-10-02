@@ -38,7 +38,23 @@ function constValue(tpl) {
 // ---------- helpers ----------
 function fmt(v) {
   if (typeof v !== 'number' || !isFinite(v)) return '0';
-  return String(Number(v.toPrecision(12)));
+  if (v === 0 || Math.abs(v) < 1e-12) return '0';   // snap rounding noise (e.g. cos 90°)
+  // GeoGebra reads 'e' as Euler's number, so scientific notation must NEVER be emitted:
+  // "4.6e-17" would be parsed as 4.6*e-17.  Expand it to a plain decimal string instead.
+  let s = Number(v.toPrecision(12)).toString();
+  if (!/[eE]/.test(s)) return s;
+  let neg = false;
+  if (s[0] === '-') { neg = true; s = s.slice(1); }
+  const parts = s.split(/[eE]/);
+  const mant = parts[0], ex = parseInt(parts[1], 10);
+  const mp = mant.split('.');
+  const digits = mp[0] + (mp[1] || '');
+  const pointPos = mp[0].length + ex;
+  let out;
+  if (pointPos <= 0) out = '0.' + '0'.repeat(-pointPos) + digits;
+  else if (pointPos >= digits.length) out = digits + '0'.repeat(pointPos - digits.length);
+  else out = digits.slice(0, pointPos) + '.' + digits.slice(pointPos);
+  return (neg ? '-' : '') + out;
 }
 function xmlEsc(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
@@ -360,12 +376,13 @@ function sketchFrame(ir, byId) {
   if (!(uxLen > 0) || !(uyLen > 0)) return null;
   const ratio = uyLen / uxLen;                     // guard against mis-read unit points
   if (ratio < 0.2 || ratio > 5) return null;
+  const inv = (dx, dy) => ({ x: (Uy.y * dx - Uy.x * dy) / det, y: (Ux.x * dy - Ux.y * dx) / det });
   return {
     O, Ux, Uy, uxLen, uyLen,
     pt(p) {                                    // sketch-pixel point -> frame coordinates
-      const dx = p.x - O.x, dy = p.y - O.y;
-      return { x: (Uy.y * dx - Uy.x * dy) / det, y: (Ux.x * dy - Ux.y * dx) / det };
+      return inv(p.x - O.x, p.y - O.y);
     },
+    disp(dx, dy) { return inv(dx, dy); },      // sketch-pixel displacement -> frame (ggb) displacement
   };
 }
 // t72 function plot: the tag-2306 record stores the plotted x-domain [xmin, xmax] (frame units).
@@ -813,8 +830,32 @@ function planOf(o, byId) {
         warn: 'dilation by marked value (tag 2311 decoded; scale = marker value)' };
       return skip('marked-ratio value not decodable (tag 2311)');
     }
-    case 'implicitRotate':
-      return skip('rotation about an implicit/marked center not decodable (arity 1, tag 2311)');
+    case 'implicitRotate': {
+      // t21 is NOT a rotation: it is a PolarTranslation (verified 2026-10-02 by
+      // unhide + render ground truth; see HANDOFF.md).  tag-2003 layout:
+      //   +4  p0 = -sinθ     +12 p1 = cosθ     +32 d1 = translation distance (file units)
+      // The cached angle at +20 may be degrees OR radians and is unreliable, so θ is
+      // derived from (p0,p1).  In GSP's y-down frame the image is
+      // parent + d1·(cosθ, −sinθ).  d1 is a length in the same file units as point
+      // coordinates, so it is mapped through the SAME scale as a coordinate delta
+      // (frame inverse-matrix, or /SCALE with the y-flip) — not used verbatim.
+      if (P.length !== 1) return skip('polar translation needs exactly one parent');
+      const raw = o._raw && o._raw.paramRaw;
+      const p0 = (o.params || [])[0], p1 = (o.params || [])[1];
+      const d1 = raw && raw.length >= 40 ? raw.readDoubleLE(32) : NaN;
+      if (!Number.isFinite(p0) || !Number.isFinite(p1) || !Number.isFinite(d1))
+        return skip('polar translation needs (p0,p1,d1) from tag 2003');
+      const th = Math.atan2(-p0, p1);
+      // d1 is a distance in GSP's file (sketch-pixel) units — the same units as point
+      // coordinates — so it must pass through the same scale as a coordinate delta:
+      // (cosθ, −sinθ) in y-down file space, then the frame (or SCALE) mapping.
+      const ddx = d1 * Math.cos(th), ddy = -d1 * Math.sin(th);
+      const g = frame ? frame.disp(ddx, ddy) : toGgb({ x: ddx, y: ddy }, o._unit);
+      return { elem: elemTypeOf(o, byId),
+        exprTpl: 'Translate(' + R(o.parents[0]) + ',Vector((' + fmt(g.x) + ',' + fmt(g.y) + ')))',
+        args: [o.parents[0]],
+        warn: 'polar translation (t21): Translate by a fixed vector' };
+    }
     case 'unitX':
       if (o.params.length >= 1) {
         const org = unitPointOrigin(o, byId);
