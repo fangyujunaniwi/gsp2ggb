@@ -139,6 +139,7 @@ const TYPES = {
   66: { k: 'deltaY' },
   69: { k: 'calc' },            // expression in label with {n} parent placeholders
   87: { k: 'measureSlope' },    // slope of segment (2nd parent = value ref, ignored)
+  94: { k: 'pathParam' },       // point's relative position along its host path (PointOnObject)
   113:{ k: 'angle' },           // 3 points, middle = vertex (geometric angle)
   120:{ k: 'angleValue' }       // measurement of an angle object (parent = t113)
 };

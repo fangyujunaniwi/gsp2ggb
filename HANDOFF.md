@@ -287,7 +287,9 @@
   （185,308→187,125，+1,817；`t29` 发射 1,054→2,512，+1,458，主因是 `2*pi<ang>0/{n}` 这类角度程序
   此前因 `pi` 后的 `<ang>0` 未消费而报 `parse: trailing tokens` 被整类跳过。护栏同时消除了约 1,164 个
   「中心非点」的错误 `Dilate` 输出）。**
-  剩余瓶颈（按“根因杠杆”排序）：① `t94`（3,771，语义未定性）与未知类型
+  **2026-10-02 续：定性 `t94`＝「点在宿主路径上的相对位置」，发 `PathParameter(p0)`（同宿主·线段/多边形）：
+  `emitted=189420 rate=47.34%`（187,125→189,420，+2,295；`t94` 发射 810）。**
+  剩余瓶颈（按“根因杠杆”排序）：① 未知类型
   `t77/90/24/75/32/35` 的级联 ② `point on unsupported path`（4,525）③ `t62` 按钮剩余（11,306）
 - ⏳ 真实未知类型（按新增真值更新）：
   - **`t29`（本机 4,720 条）= `MeasuredAngleRotation`（JSP `Rotation/MeasuredAngle`）**：arity=3，
@@ -312,9 +314,19 @@
     产出的是 **t27** 而非 t21。JSP `PolarTranslation`（`readObjectSpecifier(1,2,0)`＝1 父+2 double，
     `Sketch.java` L1136）与 t21 的 arity 吻合。**✅ 2026-10-02 已落地**（实现与验证见下「t21＝极坐标平移」及「下一步 2」）。
   - `t34` 直接跳过仅 **730** 条「reflection mirror unsupported」（其余为级联），见下一步 0。
-  - 其余：`t24`、`t32`、`t35/t89/t77`（自定义工具/采样）、`t73/t90/t95/t101/t94/t80/t79/t81`
+  - 其余：`t24`、`t32`、`t35/t89/t77`（自定义工具/采样）、`t73/t90/t95/t101/t80/t79/t81`
     （测量/标注/迭代）、`t75`（颜色样式）——多依赖未解码表达式，暂缓。
-    已知 `t94`≈点到直线距离（父 `[点,直线]`，measureType 3）——测量显示用，暂不整体映射。
+  - **`t94`（3,771 条）= `PointOnObject` 的「点在宿主路径上的相对位置」**。父 `[点, 路径]`，
+    由父 `2307` 记录 + 点的 `PointOnStraight/PointOnCircle/PointOnPolygon` 语义确定。**2026-10-02 已落地**：
+    当 `p0` 是 `pointOnPath` **且 `p0.parents[0] == p1`（同一宿主）**且宿主为线段/多边形（含仿射像）时，
+    发 `PathParameter(p0)`（GeoGebra 手册：线段 AB 的参数 = `φ(X,A,B)` ∈ [0,1]，与 GSP
+    `PointOnStraight.Constrain` 的 `(x1,y1)+φ·((x2,y2)-(x1,y1))` 一致；JSP 样本写作
+    `Point on object(3, 0.174345)`，其 φ 与点对象里 2003 参数逐位相符）。本机发射 810、连带解锁
+    2,295（覆盖率 46.76%→47.34%）。**未映射**：宿主为直线（我们发的是坐标表达式，非路径点）或圆的点
+    （`PointOnCircle` 存的是角度，与 GeoGebra `PathParameter` 的 (α+π)/2π 参照系未验证），以及
+    `p1 ≠ p0.parents[0]`（把点投影到**另一条**线段上，GSP 投到直线、GeoGebra 会夹到线段，未验证）。
+    旧猜测「t94=点到直线距离（measureType 3）」**已被推翻**（父序 `[点,线]` 与 mT3 的 `[线,点]`
+    不符；且 `棋盘` 用例中 t94 作 `4t+2` 取整要求 t∈[0,1]）。
     `t47` 比值测量（父 2 线段 = 比值/段，或 3 点 = 比值/点）**已全量映射为 numeric**（见「当前状态」）。
 - ✅ **变换族真值（CFR 反编译 `jsp5.jar` + 用户手作控制草图确认）**：
   - Transformer 家族：Rotater{Rotation, MarkedAngleRotation, MeasuredAngleRotation}；

@@ -278,10 +278,14 @@ node tools\jspextract.js page.htm --out o.json
   GSP **function** (type 71), **derivative** (type 78) and free-number **function** objects are
   emitted as GeoGebra `Function` objects; **plots** (type 72) are skipped because GeoGebra draws the
   function itself.
-- Objects that still need unmapped `2311` values of measures/`t94`/`t90`/`t21` are skipped
-  (with cascading dependents). `t29`/`t33` markers are no longer in this list: they resolve to a
-  3-point angle / measured ratio, or fall back to the marker's own decoded `2311` value (see the
-  affine-transform table above). `t47` is now mapped in full (`t47` is no longer a skip cause).
+- Objects that still need unmapped `2311` values of measures/`t90` are skipped
+  (with cascading dependents). **`t94` = a `PointOnObject`'s position along its host path**: when the
+  point is a `pointOnPath` on its *own* host path and that host is a segment/polygon (incl. affine
+  images), it is emitted as **`PathParameter(p)`** (GeoGebra documents `PathParameter(Segment AB) = φ(X,A,B) ∈ [0,1]`, matching GSP's `PointOnStraight.Constrain` `(x1,y1)+φ·((x2,y2)-(x1,y1))`; the JSP sample `Point on object(3, 0.174345)` matches the point's tag-2003 value bit-for-bit). Line/circle
+  hosts, and cases where `p1` is not the point's host, are still skipped (unverified). `t29`/`t33`
+  markers are no longer in this list: they resolve to a 3-point angle / measured ratio, or fall back
+  to the marker's own decoded `2311` value (see the affine-transform table above). `t47` is now mapped
+  in full (`t47` is no longer a skip cause).
 - Some variable-length records omit one trailing pad byte from their stored length. This
   affects `tag 1300` (embedded PNG) and `tag 9009` (document metadata/list record). Without
   skipping the pad, every following record is off by one (tags show as `0x3EF00`, `0x38700`,

@@ -105,7 +105,7 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
 
 `.gsp → .ggb`：
 
-- 语料 `1430` 文件、`400149` 对象，可发出 **187125**（覆盖率 **46.76%**，2026-10-02 基线）。
+- 语料 `1430` 文件、`400149` 对象，可发出 **189420**（覆盖率 **47.34%**，2026-10-02 基线）。
   `node tools/emitstats.js <语料目录>` 应复现该数字。
 - **另一台机 2026-10-01 复测**：同一转换器在全树 `1478` 文件（含 `Samples/`、`Tool Folder/`）上，
   `t29`/`t33` marker 接入 2311 解码值后为 `objects=407095 emitted=124349 rate=30.55%`（接入前 29.79%）；
@@ -123,8 +123,9 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
 - **2026-10-02 最新基线（全树 `1430` 文件 / `400149` 对象）**：修复 `tag 2311` 解码器「常量
   `pi`/`e` 后角度单位标记未消费」的解析 bug（`t29` 发射 1,054→2,512），并为 `t33` 的 marker 增加
   结构化测量回退 + 「中心必须是点」护栏（消除约 1,164 个错误 `Dilate`）及（此前）落地 `t21` 极坐标
-  平移：**`emitted=187125 rate=46.76%`**（`t21` 发射 0→10,730）。
-- `tag 2311` 表达式解码覆盖 **56875/57112 = 99.6%**（`node tools/exprcov.js <语料目录>`）。
+  平移，以及**定性并落地 `t94`＝点在宿主路径上的相对位置（`PathParameter`，`t94` 发射 810）**：
+  **`emitted=189420 rate=47.34%`**（`t21` 发射 0→10,730）。
+- `tag 2311` 表达式解码覆盖 **57079/57112 = 99.9%**（`node tools/exprcov.js <语料目录>`）。
 - `node test/smoke.js` → `SMOKE PASSED`。
 
 回归样例（均已用真机 GeoGebra 5.4 打开核对）：
@@ -138,7 +139,7 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
 
 `.ggb → .gsp`：生成的 `.gsp` 在真实几何画板 5.06 打开并渲染；`polygon_reflections` 往返后 37 个对象（含 21 条反射）全部还原。
 
-已知限制见 `README.md` 的 **已知限制**；主要跳过项：`t94`（语义未定性）、`t62` 动作按钮、`t77/t90/t24/t75/t32/t35` 等自定义工具/迭代类、`point on unsupported path`、以及 `t33` 中「中心非点」的同名异类结构等，均**跳过而非猜测**。
+已知限制见 `README.md` 的 **已知限制**；主要跳过项：`t94`（宿主为直线/圆、或跨宿主投影的情形）、`t62` 动作按钮、`t77/t90/t24/t75/t32/t35` 等自定义工具/迭代类、`point on unsupported path`、以及 `t33` 中「中心非点」的同名异类结构等，均**跳过而非猜测**。
 
 ---
 

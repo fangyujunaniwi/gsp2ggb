@@ -951,6 +951,22 @@ function planOf(o, byId) {
     case 'measureSlope':
       if (P.length >= 1) return { elem: 'numeric', exprTpl: 'Slope(' + R(o.parents[0]) + ')', args: [o.parents[0]] };
       return skip('slope measure needs line/segment');
+    case 'pathParam': {
+      // t94 = a point's relative position along its host path (PointOnObject).  The
+      // dominant form is [point-on-path, its own path]; for a segment / polygon this
+      // equals GeoGebra's PathParameter ∈ [0,1] (GSP PointOnStraight.Constrain gives
+      // p = (x1,y1) + φ·((x2,y2)-(x1,y1)); the JSP sample writes `Point on object(seg, φ)`,
+      // and GeoGebra documents PathParameter(Segment AB) = φ(X,A,B)).  Circles are left
+      // out because their angle convention is not verified.
+      const p0 = P[0], p1 = P[1];
+      if (p0 && p0.kind === 'pointOnPath' && p0.parents && p1 && p0.parents[0] === p1.id) {
+        const base = straightBaseKind(p1, byId, 0);
+        if (base === 'segment' || base === 'polygon' || p1.kind === 'polygon')
+          return { elem: 'numeric', exprTpl: 'PathParameter(' + R(p0.id) + ')', args: [p0.id],
+            warn: 'point position along its path (PathParameter)' };
+      }
+      return skip('point-position measure: unsupported host');
+    }
     case 'ratioMeasure': {
       const r = ratioTemplate(o, byId);
       if (r) return { elem: 'numeric', exprTpl: r.tpl, args: r.ids };
