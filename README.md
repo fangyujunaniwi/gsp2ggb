@@ -85,6 +85,7 @@ node bin\tui.js
   （已用 `tools\hybrid.js` 做文件头/正文交叉试验隔离定位）。文件头以已知可用文件为蓝本。
 
 ## 类型语义（已用命名对照样例验证）
+> 全部 `tXX` 类型（含未映射项、记录 tag 说明与**编号跳空**）的速查表见 [`TYPE_TABLE.md`](TYPE_TABLE.md)。
 对象类型码用 `m-ezekiel/GeometersSketchpad` 仓库中命名清晰的小样例 `.gsp`
 （如 `polygon_reflections.gsp`、`area_parallelogram.gsp`、`hexagon_by_rotations.gsp`、
 `angle_bisector.gsp`）做了真值校验。已确证的映射：
