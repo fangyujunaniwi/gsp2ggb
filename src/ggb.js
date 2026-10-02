@@ -163,6 +163,27 @@ function ratioInfo(o, byId) {
   return null;
 }
 
+// Resolve the marker of a DilationMR (t33) / MeasuredAngleRotation (t29) to a
+// numeric GeoGebra expression.  In GSP the marker is a SimpleMeasure: a ratio
+// (t47, possibly wrapped in a t48 label), a marked number whose value lives in
+// its tag-2311 program, or an ordinary measurement (Length t36, Distance t37,
+// Angle t41, …).  For the latter we reuse the object's own numeric plan instead
+// of guessing, so anything that is not already a verified numeric plan stays
+// unresolved (and the caller skips it).
+function markerNumeric(mk, byId) {
+  if (!mk) return null;
+  const r = ratioInfo(mk, byId);
+  if (r) return { exprTpl: r.tpl, args: r.ids, src: r.obj };
+  const dec = decodedExpr(mk);
+  if (dec && !usesX(dec.exprTpl)) return { exprTpl: dec.exprTpl, args: dec.args };
+  if (NUM_KINDS.has(mk.kind)) {
+    const p = planOf(mk, byId);
+    if (p && !p.skip && p.elem === 'numeric' && p.exprTpl)
+      return { exprTpl: p.exprTpl, args: p.args || [] };
+  }
+  return null;
+}
+
 // ---------- label assignment ----------
 const RESERVED = new Set(['x', 'y', 'z', 'e', 'i', 'pi', 'exp', 'ln', 'log', 'sin', 'cos', 'tan',
   'sqrt', 'abs', 'min', 'max', 'sum', 'length', 'distance', 'midpoint', 'segment',
@@ -802,32 +823,28 @@ function planOf(o, byId) {
       return skip('measured angle value not decodable (tag 2311)');
     }
     case 'markedRatioDilate': {
-      // DilationMR(center, ratioMeasure): scale by a measured ratio. The marker may
-      // be a t47 ratio of two segments or of three points, or any marked number whose
-      // value is stored in its tag-2311 program (the dilation factor is
-      // dimensionless, so the decoded value is used verbatim).
+      // DilationMR(center, ratioMeasure): scale by a measured value. The marker is a
+      // SimpleMeasure — a t47 ratio, a marked number (tag 2311), or an ordinary
+      // measurement (Length/Distance/Angle/…).  The center must be a point, otherwise
+      // the object is not a DilationMR (some binary t33 records are look-alikes).
       if (P.length !== 3) return skip('marked-ratio dilation needs preimage+center+ratio');
+      const center = byId.get(o.parents[1]);
+      if (!isPointish(center)) return skip('marked-ratio dilation center is not a point');
       const mk = byId.get(o.parents[2]);
-      const r = ratioInfo(mk, byId);
-      if (r) {
-        // The ratio measure (when resolved through a t48 label wrapper) is emitted as
-        // a numeric object, so reference it instead of duplicating the expression.
-        const src = r.obj;
-        if (src && src.srcType === 47)
+      const v = markerNumeric(mk, byId);
+      if (v) {
+        // A t47 ratio measure is emitted as its own numeric object, so reference it
+        // rather than duplicating the expression.
+        if (v.src && v.src.srcType === 47)
           return { elem: elemTypeOf(o, byId),
-            exprTpl: 'Dilate(' + R(o.parents[0]) + ',' + R(src.id) + ',' + R(o.parents[1]) + ')',
-            args: [o.parents[0], o.parents[1], src.id],
+            exprTpl: 'Dilate(' + R(o.parents[0]) + ',' + R(v.src.id) + ',' + R(o.parents[1]) + ')',
+            args: [o.parents[0], o.parents[1], v.src.id],
             warn: 'dilation by a measured ratio' };
         return { elem: elemTypeOf(o, byId),
-          exprTpl: 'Dilate(' + R(o.parents[0]) + ',' + r.tpl + ',' + R(o.parents[1]) + ')',
-          args: [o.parents[0], o.parents[1]].concat(r.ids),
-          warn: 'dilation by a measured ratio' };
+          exprTpl: 'Dilate(' + R(o.parents[0]) + ',' + v.exprTpl + ',' + R(o.parents[1]) + ')',
+          args: [o.parents[0], o.parents[1]].concat(v.args),
+          warn: 'dilation by a measured value (scale = marker value)' };
       }
-      const dec = decodedExpr(mk);
-      if (dec && !usesX(dec.exprTpl)) return { elem: elemTypeOf(o, byId),
-        exprTpl: 'Dilate(' + R(o.parents[0]) + ',' + dec.exprTpl + ',' + R(o.parents[1]) + ')',
-        args: [o.parents[0], o.parents[1]].concat(dec.args),
-        warn: 'dilation by marked value (tag 2311 decoded; scale = marker value)' };
       return skip('marked-ratio value not decodable (tag 2311)');
     }
     case 'implicitRotate': {

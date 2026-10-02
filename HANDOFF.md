@@ -281,21 +281,31 @@
   `exprcov` 解码 57370/57607=99.6%。
   **2026-10-02 落地 `t21`＝极坐标平移（并修复科学计数法被 GeoGebra 误读）后：
   `emitted=185308 rate=46.31%`（127,076→185,308，+58,232；`t21` 发射 0→10,730，级联解锁大量依赖对象）。**
-  剩余瓶颈（按“根因杠杆”排序）：① `t33`/`t29`
-  12,523/5,074（marker 无 2311 或依赖被跳过对象级联）② `point on unsupported path` 与未知类型
-  `t2/16/15/9/5/6/24/32/35/47/73/77/90/94` 的级联 ③ `t62` 按钮剩余 11,988（其中 4,445 是“移动”、
-  2,327 是“同时/切换组”，无可靠等价；4,512 是目标全被跳过的连坐）。
+  **2026-10-02 续：修复 `tag 2311` 解码器「常量 `pi`/`e` 之后的角度单位标记未被消费」的 bug
+  （`expr.js` 的 `parsePrimary` 现对常量也调用 `applyUnits`），并给 `t33`/`t29` 的 marker 增加
+  「结构化测量回退」+「中心必须是点」护栏：`emitted=187125 rate=46.76%`
+  （185,308→187,125，+1,817；`t29` 发射 1,054→2,512，+1,458，主因是 `2*pi<ang>0/{n}` 这类角度程序
+  此前因 `pi` 后的 `<ang>0` 未消费而报 `parse: trailing tokens` 被整类跳过。护栏同时消除了约 1,164 个
+  「中心非点」的错误 `Dilate` 输出）。**
+  剩余瓶颈（按“根因杠杆”排序）：① `t94`（3,771，语义未定性）与未知类型
+  `t77/90/24/75/32/35` 的级联 ② `point on unsupported path`（4,525）③ `t62` 按钮剩余（11,306）
 - ⏳ 真实未知类型（按新增真值更新）：
-  - **`t29`（本机 5,074 条）= `MeasuredAngleRotation`（JSP `Rotation/MeasuredAngle`）**：arity=3，
+  - **`t29`（本机 4,720 条）= `MeasuredAngleRotation`（JSP `Rotation/MeasuredAngle`）**：arity=3，
     父 `[preimage, center, 角度测量]`。**已落地**：marker 为三点角（`t41`/`t113`/`t120`，可被 `t48`
     包裹）时发 `Rotate(pre,Angle(A,B,C),center)`；否则回退到 **marker 自身 `tag 2311` 解码值**
     （`decodedExpr`），作为**弧度**直接发 `Rotate(pre,<值>,center)`。依据：反编译
     `Rotater.PrepareRotation` 用 `Math.cos/sin(measure.value)`，GSP 角度即弧度；GeoGebra 同为内部弧度
-    （见上「记号约定」），故单位/符号一致。仍无 2311 或依赖被跳过者保持跳过。
-  - **`t33`（本机 12,523 条）= `DilationMR`（JSP `Dilation/MarkedRatio`）**：arity=3，
-    父 `[preimage, center, 比例测量]`。**已落地**：比例测量为 `t47`（两点段比 / 三点比，可被 `t48` 包裹）
-    时直接引用该 `t47` numeric；否则回退 **marker 自身 `tag 2311` 解码值**作为缩放比
-    （位似比为无量纲标量，直接 `Dilate(pre,<值>,center)`）。`t47` 三点比（measureType 11）**已落地**（见上）。
+    （见上「记号约定」），故单位/符号一致。**2026-10-02：修复 `pi`/`e` 后角度单位标记未消费的解析 bug，
+    `t29` 发射 1,054→2,512（剩余直接跳过仅 369）。** 仍无 2311 或依赖被跳过者保持跳过。
+  - **`t33`（本机 12,177 条）= `DilationMR`（JSP `Dilation/MarkedRatio`）**：arity=3，
+    父 `[preimage, center, 比例测量]`。**已落地**：marker 为 `t47`（两点段比 / 三点比，可被 `t48` 包裹）
+    时直接引用该 `t47` numeric；否则依次回退 **marker 自身 `tag 2311` 解码值**、再回退到
+    **结构化测量 plan**（`t36` Length / `t37` Distance / `t41` Angle / `t65/t66` 等 `NUM_KINDS`，
+    复用 `planOf`，不猜语义），作为缩放比 `Dilate(pre,<值>,center)`。
+    **新增护栏：`center` 必须是点（`isPointish`），否则跳过**——二进制 `t33` 中存在结构上的“同名异类”
+    （例如 `example-07 #68 par=[O,Calc,circle]`，无法归约为 `[pre,center,ratio]`），此前会被误发为
+    `Dilate(pre,ratio,<非点>)`；现统一跳过（本机 2,652 条，其中约 1,164 条原为错误输出）。
+    `t47` 三点比（measureType 11）**已落地**（见上）。
   - **`t21`（13,589 条）**~~＝「带全局/标记中心的定角旋转像」~~ **✅ 2026-10-02 已破案：＝极坐标平移
     `PolarTranslation`，不是旋转！**（推翻旧结论；详见下「t21＝极坐标平移（已破案）」）。
     旧推断「绕标记中心旋转」已被真值否定：`mark_center_rotate_fixed.gsp`（标记 O 为中心后旋转 P）

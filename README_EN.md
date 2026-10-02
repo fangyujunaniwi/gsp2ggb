@@ -190,9 +190,15 @@ the `m-ezekiel/GeometersSketchpad` repository (e.g. `polygon_reflections.gsp`,
 
   `t28` (979 in corpus) and `t31` are fully reconstructed. `t29`/`t33` resolve the marker first to a
   3-point angle (`t41`/`t113`/`t120`) or a measured ratio (`t47`, see below); otherwise they fall back to
-  the marker's own decoded `tag 2311` program — i.e. the marked value itself (a marked **angle** is used
-  in radians, matching GeoGebra's internal angle representation; a marked **ratio** is dimensionless).
-  Only markers whose value the decoder cannot recover are skipped.
+  the marker's own decoded `tag 2311` program, then to the marker's **structural measurement plan**
+  (`t36` length / `t37` distance / `t41` angle / `t65`/`t66` delta, reusing `planOf`, never guessing) —
+  i.e. the marked value itself (a marked **angle** is used in radians, matching GeoGebra's internal angle
+  representation; a marked **ratio** is dimensionless). **`t33` additionally requires the centre to be a
+  point** (`isPointish`); otherwise the binary `t33` is not a direct `DilationMR` structure (some records
+  of this type number cannot be reduced to `[preimage, centre, ratio]`) and is skipped rather than
+  mis-emitted. Only markers whose value the decoder cannot recover are skipped. **2026-10-02** fixed a
+  decoder bug where an angle-unit tag following a `pi`/`e` constant was not consumed (`2*pi<ang>0/{n}`
+  programs reported `trailing tokens` and were skipped wholesale), lifting `t29` from 1,054 to 2,512.
 
   **`t47` = `SimpleMeasure` "Ratio"** (decompiled `SimpleMeasure.java` + `computed3PtRatio.java`), emitted
   as a GeoGebra **numeric** (not just as a dilation marker):

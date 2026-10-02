@@ -144,6 +144,13 @@ function parse(toks) {
     }
     return parsePrimary();
   };
+  const applyUnits = node => {
+    while (peek() && peek().t === 'unit') {          // unit tag converts the literal
+      const u = peek(); p++;
+      if (u.mul !== '1') node = { k: 'op', op: '*', l: node, r: { k: 'raw', v: u.mul } };
+    }
+    return node;
+  };
   const parsePrimary = () => {
     const t = peek();
     if (!t) throw new Error('unexpected end');
@@ -151,14 +158,9 @@ function parse(toks) {
       let s = '';
       while (peek() && peek().t === 'digit') { s += peek().v; p++; }
       if (s === '.' || s === '') throw new Error('bad number');
-      let node = { k: 'raw', v: s };
-      while (peek() && peek().t === 'unit') {          // unit tag converts the literal
-        const u = peek(); p++;
-        if (u.mul !== '1') node = { k: 'op', op: '*', l: node, r: { k: 'raw', v: u.mul } };
-      }
-      return node;
+      return applyUnits({ k: 'raw', v: s });
     }
-    if (t.t === 'const') { p++; return { k: 'raw', v: t.v }; }
+    if (t.t === 'const') { p++; return applyUnits({ k: 'raw', v: t.v }); }
     if (t.t === 'var') { p++; return { k: 'var' }; }
     if (t.t === 'ref') { p++; return { k: 'ref', id: t.id }; }
     if (t.t === 'lp') { p++; const e = parseExpr(0); if (!peek() || peek().t !== 'rp') throw new Error('missing )'); p++; return e; }
