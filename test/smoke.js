@@ -244,18 +244,18 @@ if (fs.existsSync(circSrc)) {
     e6 === 'Point(c2)', e6);
 }
 
-// --- t81 = a circle through three points (verified by rendering a control sketch:
-//     the object is a complete circumcircle through its three point parents). ---
+// --- t81 = the GSP "arc through three points" tool (user control sketch: clicking
+//     O, P, Q stores [O,P,Q]); GeoGebra's CircularArc(P,Q,R) = arc P->R through Q. ---
 {
   const sIR = { objects: [
     { id: 1, kind: 'free', parents: [], params: [], coords: { x: 0, y: 0 }, label: 'A', srcType: 0 },
     { id: 2, kind: 'free', parents: [], params: [], coords: { x: 100, y: 50 }, label: 'B', srcType: 0 },
     { id: 3, kind: 'free', parents: [], params: [], coords: { x: 60, y: 120 }, label: 'C', srcType: 0 },
-    { id: 4, kind: 'circle3Points', parents: [1, 2, 3], params: [], label: 'k', srcType: 81 },
+    { id: 4, kind: 'arc3Points', parents: [1, 2, 3], params: [], label: 'k', srcType: 81 },
   ], warnings: [] };
   const sx = unzip(irToGgb(sIR).buf).get('geogebra.xml').toString('utf8');
   const e4 = (sx.match(/<expression label="k" exp="([^"]*)"/) || [])[1];
-  check('t81 -> Circle through three points', e4 === 'Circle(A,B,C)', e4);
+  check('t81 -> CircumcircularArc through three points', e4 === 'CircumcircularArc(A,B,C)', e4);
 }
 
 // --- TUI helpers (src/tui-util.js) and job pipeline (bin/tui.js) ---

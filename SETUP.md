@@ -138,6 +138,9 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
 - **2026-10-03 最新基线（全树 `1478` 文件 / `407095` 对象，第十一轮）**：用弧真值草图定性 `t79/t80/t81`
   ——`t79`=圆上的弧（已正确）、`t81`=**过三点的圆**（新落地 `Circle(P1,P2,P3)`）、`t80` 方向未验证暂不发：
   **`emitted=238455 rate=58.57%`**（+2,368）。
+- **2026-10-03 最新基线（全树 `1478` 文件 / `407095` 对象，第十一轮修正）**：弧对象全部落地——
+  `t80`=`CircularArc(圆心,P1,P2)`、`t81`=`CircumcircularArc(P1,P2,P3)`（`t79` 本已正确）：
+  **`emitted=241763 rate=59.39%`**（+3,308）。
 - `tag 2311` 表达式解码覆盖 **57079/57112 = 99.9%**（`node tools/exprcov.js <语料目录>`）。
 - `node test/smoke.js` → `SMOKE PASSED`。
 

@@ -151,7 +151,7 @@ const TYPES = {
   70: { k: 'plotXY' },          // PlotXY variant (same [xExpr,yExpr,coordSys] shape)
   79: { k: 'arc' },             // circle arc between two points: [conic, point, point]
   80: { k: 'arcCenter' },       // arc of the circle centred at parents[0] through P1,P2
-  81: { k: 'circle3Points' },   // circle through three points (verified by render)
+  81: { k: 'arc3Points' },       // arc through three points (GSP "arc through 3 points" tool)
   87: { k: 'measureSlope' },    // slope of segment (2nd parent = value ref, ignored)
   94: { k: 'pathParam' },       // point's relative position along its host path (PointOnObject)
   113:{ k: 'angle' },           // 3 points, middle = vertex (geometric angle)

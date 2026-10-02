@@ -1012,21 +1012,22 @@ function planOf(o, byId) {
       return skip('arc needs conic + 2 points');
     }
     case 'arcCenter': {
-      // t80 = an arc of the circle centred at parents[0] through P1, P2 (probe: parents[0]
-      // is equidistant from P1/P2 -> it is the centre).  The sweep DIRECTION has not been
-      // verified with a control sketch (JavaSketchpad does not export arcs), so it stays
-      // skipped rather than risk a mirrored arc.
-      return skip('centred arc (t80): sweep direction not verified');
-    }
-    case 'circle3Points': {
-      // t81 = a circle through three points.  Verified 2026-10-03 by rendering the
-      // user's control sketch arc_center_two_points.gsp: the t81 object is a *complete*
-      // circumcircle through its three point parents (P, O, Q all lie on it, no arc
-      // endpoints).  GeoGebra's Circle(P,Q,R) builds the same circumcircle.
+      // t80 = [centre, P1, P2]: an arc of the circle centred at parents[0], from P1 to P2
+      // (probe: parents[0] is equidistant from P1/P2 -> it is the centre).  GeoGebra's
+      // CircularArc(M,A,B) is exactly "arc with centre M between A and B".
       if (P.length === 3 && P.every(isPointish))
-        return { elem: 'conic', exprTpl: 'Circle(' + o.parents.map(R).join(',') + ')', args: o.parents,
-          warn: 'circle through three points (t81)' };
-      return skip('circle through three points needs 3 points');
+        return { elem: 'conic', exprTpl: 'CircularArc(' + o.parents.map(R).join(',') + ')', args: o.parents,
+          warn: 'arc of a circle centred at its first parent (t80)' };
+      return skip('centred arc needs centre + 2 points');
+    }
+    case 'arc3Points': {
+      // t81 = the GSP "arc through three points" tool, parents [start, through, end] in
+      // selection order.  GeoGebra's CircumcircularArc(A,B,C) is the arc from A to C
+      // through B — the same construction.
+      if (P.length === 3 && P.every(isPointish))
+        return { elem: 'conic', exprTpl: 'CircumcircularArc(' + o.parents.map(R).join(',') + ')', args: o.parents,
+          warn: 'arc through three points (t81)' };
+      return skip('arc through three points needs 3 points');
     }
     case 'polygon': {
       if (P.length < 3) return skip('polygon needs >=3 vertices');
