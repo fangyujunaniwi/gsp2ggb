@@ -72,7 +72,7 @@ function toGsp(c) {                 // ggb -> gsp logical (y-down)
 // ---------- kind classification ----------
 const POINT_KINDS = new Set(['free', 'midpoint', 'pointOnPath', 'intersectLL',
   'intersectLC1', 'intersectLC2', 'intersectCC1', 'intersectCC2', 'foot', 'offsetPoint',
-  'unitX', 'squareUnitY', 'rectUnitY', 'rotateImage', 'dilateImage', 'translateImage', 'plotPoint']);
+  'unitX', 'squareUnitY', 'rectUnitY', 'rotateImage', 'dilateImage', 'translateImage', 'plotPoint', 'plotXY']);
 const LINE_KINDS = new Set(['line2pt', 'perpLine', 'parallelLine', 'angleBisector', 'axis']);
 const SEG_KINDS = new Set(['segment']);
 const XFORM_KINDS = new Set(['translateImage', 'rotateImage', 'dilateImage', 'reflectImage',
@@ -96,8 +96,9 @@ function dependsOn(fromId, targetId, byId) {
   return false;
 }
 const CIRC_KINDS = new Set(['circleOn', 'circleRadiusSeg', 'circleRadiusObj']);
-const NUM_KINDS = new Set(['measureDistance', 'measureLengthSeg', 'measureSlope',
-  'deltaX', 'deltaY', 'calc', 'angleMeasure', 'angle', 'angleValue', 'ratioMeasure']);
+const NUM_KINDS = new Set(['measureDistance', 'measureDistPtLine', 'measureCoordDistance',
+  'measureLengthSeg', 'measureSlope', 'measurePerimeter', 'measureCircumference', 'measureArea', 'measureRadius',
+  'abscissa', 'ordinate', 'angleMeasure', 'angle', 'angleValue', 'ratioMeasure']);
 
 function isPointish(o) {
   if (!o) return false;
@@ -999,9 +1000,47 @@ function planOf(o, byId) {
       if (P.length === 2 && P.every(isPointish))
         return { elem: 'numeric', exprTpl: 'Distance(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ')', args: o.parents };
       return skip('distance measure: unsupported parents');
+    case 'measureDistPtLine': {
+      // SimpleMeasure mT3 = distance from a point to a line/segment.  GeoGebra's
+      // Distance wants the point first: Distance(<Point>, <Object>).
+      if (P.length === 2) {
+        const a = P[0], b = P[1];
+        let pt, ln;
+        if (isPointish(a) && !isPointish(b)) { pt = o.parents[0]; ln = o.parents[1]; }
+        else if (isPointish(b) && !isPointish(a)) { pt = o.parents[1]; ln = o.parents[0]; }
+        else return skip('point-line distance: ambiguous parents');
+        return { elem: 'numeric', exprTpl: 'Distance(' + R(pt) + ',' + R(ln) + ')', args: [pt, ln] };
+      }
+      return skip('point-line distance needs 2 parents');
+    }
+    case 'measureCoordDistance': {
+      // SimpleMeasure mT15 = sqrt(((Ax-Bx)/ux)^2 + ((Ay-By)/uy)^2).
+      if (P.length === 3 && isPointish(P[0]) && isPointish(P[1])) {
+        const cs = coordSysRef(P[2], byId, R);
+        if (cs) {
+          const A = R(o.parents[0]), B = R(o.parents[1]);
+          return { elem: 'numeric',
+            exprTpl: 'sqrt(((x(' + A + ')-x(' + B + '))/(' + cs.ux + '))^2 + ((y(' + A + ')-y(' + B + '))/(' + cs.uy + '))^2)',
+            args: o.parents };
+        }
+      }
+      return skip('coordinate distance needs 2 points + coordinate system');
+    }
     case 'measureSlope':
       if (P.length >= 1) return { elem: 'numeric', exprTpl: 'Slope(' + R(o.parents[0]) + ')', args: [o.parents[0]] };
       return skip('slope measure needs line/segment');
+    case 'measurePerimeter':
+      if (P.length === 1) return { elem: 'numeric', exprTpl: 'Perimeter(' + R(o.parents[0]) + ')', args: o.parents };
+      return skip('perimeter needs 1 parent');
+    case 'measureCircumference':
+      if (P.length === 1) return { elem: 'numeric', exprTpl: 'Circumference(' + R(o.parents[0]) + ')', args: o.parents };
+      return skip('circumference needs 1 parent');
+    case 'measureArea':
+      if (P.length === 1) return { elem: 'numeric', exprTpl: 'Area(' + R(o.parents[0]) + ')', args: o.parents };
+      return skip('area needs 1 parent');
+    case 'measureRadius':
+      if (P.length === 1) return { elem: 'numeric', exprTpl: 'Radius(' + R(o.parents[0]) + ')', args: o.parents };
+      return skip('radius needs 1 parent');
     case 'pathParam': {
       // t94 = a point's relative position along its host path (PointOnObject).  The
       // dominant form is [point-on-path, its own path]; for a segment / polygon this
@@ -1023,26 +1062,34 @@ function planOf(o, byId) {
       if (r) return { elem: 'numeric', exprTpl: r.tpl, args: r.ids };
       return skip('ratio measure: unsupported parents');
     }
-    case 'deltaX':
-      if (P.length === 2) return { elem: 'numeric', exprTpl: 'x(' + R(o.parents[0]) + ')-x(' + R(o.parents[1]) + ')', args: o.parents, warn: 'dx sign/order unverified' };
-      return skip('dx needs 2 parents');
-    case 'deltaY':
-      if (P.length === 2) return { elem: 'numeric', exprTpl: 'y(' + R(o.parents[0]) + ')-y(' + R(o.parents[1]) + ')', args: o.parents, warn: 'dy sign/order unverified' };
-      return skip('dy needs 2 parents');
-    case 'calc': {
-      // label = formula template with {n} = nth parent (e.g. "=({2})+({3})")
-      const tpl = (o.label || '').replace(/^=/, '');
-      if (!/\{\d+\}/.test(tpl)) return skip('calc without {n} template');
-      const ids = [];
-      let bad = false;
-      const exprTpl = tpl.replace(/\{(\d+)\}/g, (m, n) => {
-        const idx = parseInt(n, 10) - 1;
-        if (idx < 0 || idx >= o.parents.length) { bad = true; return m; }
-        ids.push(o.parents[idx]);
-        return '{#' + o.parents[idx] + '}';
-      });
-      if (bad || !ids.length) return skip('calc template refs out of range');
-      return { elem: 'numeric', exprTpl, args: ids, warn: 'calc operator set best-effort' };
+    case 'abscissa': {
+      // SimpleMeasure mT13 = (x(P) - originX)/unitX in the coordinate system of parent 1.
+      if (P.length === 2 && isPointish(P[0])) {
+        const cs = coordSysRef(P[1], byId, R);
+        if (cs) return { elem: 'numeric',
+          exprTpl: '(x(' + R(o.parents[0]) + ') - (' + cs.ox + '))/(' + cs.ux + ')', args: o.parents };
+      }
+      return skip('abscissa needs point + coordinate system');
+    }
+    case 'ordinate': {
+      // SimpleMeasure mT14 = -(y(P) - originY)/unitY.
+      if (P.length === 2 && isPointish(P[0])) {
+        const cs = coordSysRef(P[1], byId, R);
+        if (cs) return { elem: 'numeric',
+          exprTpl: '-(y(' + R(o.parents[0]) + ') - (' + cs.oy + '))/(' + cs.uy + ')', args: o.parents };
+      }
+      return skip('ordinate needs point + coordinate system');
+    }
+    case 'plotXY': {
+      // PlotXY: a point at (xExpr, yExpr) in a coordinate system (dynamic plot).
+      if (P.length >= 3) {
+        const cs = coordSysRef(P[2], byId, R);
+        if (cs) return { elem: 'point',
+          exprTpl: '(' + cs.ox + ' + (' + R(o.parents[0]) + ')*(' + cs.ux + '), ' + cs.oy + ' - (' + R(o.parents[1]) + ')*(' + cs.uy + '))',
+          args: [o.parents[0], o.parents[1], o.parents[2]],
+          warn: 'dynamic plot point (PlotXY) in a coordinate system' };
+      }
+      return skip('plotXY needs x,y,coordinate system');
     }
     case 'text': {
       if (o.msg) {                       // FixedText: message stored inline (tag 2300)

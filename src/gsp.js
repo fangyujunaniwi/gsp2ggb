@@ -122,9 +122,15 @@ const TYPES = {
   35: { k: 'locus' },           // Sampler/gPointLocus: traced point + mover path + mover (+ deps)
   36: { k: 'measureLengthSeg' },// length of segment (label a/b/c/d)
   37: { k: 'measureDistance' }, // distance point-point (label a/b/c/d)
+  38: { k: 'measureDistPtLine' }, // SimpleMeasure mT3: distance point-line
+  39: { k: 'measurePerimeter' }, // SimpleMeasure mT4: perimeter (polygon)
+  40: { k: 'measureCircumference' }, // SimpleMeasure mT4: circumference (circle)
   41: { k: 'angleMeasure' },    // 3 points, middle = vertex (Angle ABC)
+  42: { k: 'measureArea' },     // SimpleMeasure mT6: area (polygon/circle)
+  46: { k: 'measureRadius' },   // SimpleMeasure mT9: radius (circle)
   47: { k: 'ratioMeasure' },    // SimpleMeasure: ratio of 2 segments (mT8) or of 3 points (mT11)
   48: { k: 'text' },
+  86: { k: 'measureCoordDistance' }, // SimpleMeasure mT15: coordinate distance (2 pts + coord sys)
   52: { k: 'unitX' },           // SimpleUnitPoint: horizontal axis unit point (origin + dx)
   54: { k: 'squareUnitY' },     // SquareUnitPoint: vertical unit point derived from unitX (same scale)
   55: { k: 'rectUnitY' },       // RectangularUnitPoint: vertical unit point with its own scale
@@ -136,9 +142,9 @@ const TYPES = {
   62: { k: 'button' },          // Sketchpad action button (has record 2310); not geometry
   63: { k: 'line2pt' },
   64: { k: 'circleRadiusObj' }, // center + radius (segment/vector)
-  65: { k: 'deltaX' },          // x(P1)-x(P2) (vector component; best-effort)
-  66: { k: 'deltaY' },
-  69: { k: 'calc' },            // expression in label with {n} parent placeholders
+  65: { k: 'abscissa' },        // SimpleMeasure mT13: (x(P)-originX)/unitX in a coordinate system
+  66: { k: 'ordinate' },        // SimpleMeasure mT14: -(y(P)-originY)/unitY
+  69: { k: 'plotXY' },          // PlotXY: point at (xExpr,yExpr) in a coordinate system
   87: { k: 'measureSlope' },    // slope of segment (2nd parent = value ref, ignored)
   94: { k: 'pathParam' },       // point's relative position along its host path (PointOnObject)
   113:{ k: 'angle' },           // 3 points, middle = vertex (geometric angle)
