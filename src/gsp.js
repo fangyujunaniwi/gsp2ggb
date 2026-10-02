@@ -127,6 +127,8 @@ const TYPES = {
   40: { k: 'measureCircumference' }, // SimpleMeasure mT4: circumference (circle)
   41: { k: 'angleMeasure' },    // 3 points, middle = vertex (Angle ABC)
   42: { k: 'measureArea' },     // SimpleMeasure mT6: area (polygon/circle)
+  43: { k: 'measureArcAngle' }, // arc angle (degrees) of an arc object
+  44: { k: 'measureArcLength' },// arc length of an arc object
   46: { k: 'measureRadius' },   // SimpleMeasure mT9: radius (circle)
   47: { k: 'ratioMeasure' },    // SimpleMeasure: ratio of 2 segments (mT8) or of 3 points (mT11)
   48: { k: 'text' },
@@ -145,6 +147,10 @@ const TYPES = {
   65: { k: 'abscissa' },        // SimpleMeasure mT13: (x(P)-originX)/unitX in a coordinate system
   66: { k: 'ordinate' },        // SimpleMeasure mT14: -(y(P)-originY)/unitY
   69: { k: 'plotXY' },          // PlotXY: point at (xExpr,yExpr) in a coordinate system
+  70: { k: 'plotXY' },          // PlotXY variant (same [xExpr,yExpr,coordSys] shape)
+  79: { k: 'arc' },             // circle arc between two points: [conic, point, point]
+  80: { k: 'arc' },
+  81: { k: 'arc' },
   87: { k: 'measureSlope' },    // slope of segment (2nd parent = value ref, ignored)
   94: { k: 'pathParam' },       // point's relative position along its host path (PointOnObject)
   113:{ k: 'angle' },           // 3 points, middle = vertex (geometric angle)

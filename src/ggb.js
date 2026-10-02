@@ -98,6 +98,7 @@ function dependsOn(fromId, targetId, byId) {
 const CIRC_KINDS = new Set(['circleOn', 'circleRadiusSeg', 'circleRadiusObj']);
 const NUM_KINDS = new Set(['measureDistance', 'measureDistPtLine', 'measureCoordDistance',
   'measureLengthSeg', 'measureSlope', 'measurePerimeter', 'measureCircumference', 'measureArea', 'measureRadius',
+  'measureArcAngle', 'measureArcLength',
   'abscissa', 'ordinate', 'angleMeasure', 'angle', 'angleValue', 'ratioMeasure']);
 
 function isPointish(o) {
@@ -958,6 +959,17 @@ function planOf(o, byId) {
           args: [o.parents[0]].concat(ref.ids) };
       return skip('reflection mirror unsupported');
     }
+    case 'arc': {
+      // GSP arc = a circle arc between two points → GeoGebra Arc(<Conic>, <Point>, <Point>).
+      // The conic may itself be an affine image of a circle, so test the parent's plan.
+      if (P.length === 3 && isPointish(P[1]) && isPointish(P[2])) {
+        const cp = planOf(P[0], byId);
+        if (cp && !cp.skip && cp.elem === 'conic')
+          return { elem: 'conic', exprTpl: 'Arc(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ',' + R(o.parents[2]) + ')',
+            args: o.parents, warn: 'arc of a circle' };
+      }
+      return skip('arc needs conic + 2 points');
+    }
     case 'polygon': {
       if (P.length < 3) return skip('polygon needs >=3 vertices');
       if (!P.every(isPointish)) return skip('polygon vertices must all be points');
@@ -1041,6 +1053,12 @@ function planOf(o, byId) {
     case 'measureRadius':
       if (P.length === 1) return { elem: 'numeric', exprTpl: 'Radius(' + R(o.parents[0]) + ')', args: o.parents };
       return skip('radius needs 1 parent');
+    case 'measureArcAngle':
+      if (P.length === 1) return { elem: 'numeric', exprTpl: 'Angle(' + R(o.parents[0]) + ')', args: o.parents };
+      return skip('arc angle needs 1 parent');
+    case 'measureArcLength':
+      if (P.length === 1) return { elem: 'numeric', exprTpl: 'Length(' + R(o.parents[0]) + ')', args: o.parents };
+      return skip('arc length needs 1 parent');
     case 'pathParam': {
       // t94 = a point's relative position along its host path (PointOnObject).  The
       // dominant form is [point-on-path, its own path]; for a segment / polygon this
