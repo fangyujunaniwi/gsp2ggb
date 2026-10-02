@@ -132,6 +132,9 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
   （`FixedAngleMarkedDistance`）**——真值草图见 `ref-ctrl/jsp-samples/translate_fixedangle*`；
   `image = pre + v·(cosθ, −sinθ)`，v = 被标记的距离值（发射为 GeoGebra 数值，不再乘/除 `SCALE`）：
   **`emitted=228234 rate=56.06%`**（`t24` 发射 2,236；余 2,119 为级联）。
+- **2026-10-03 最新基线（全树 `1478` 文件 / `407095` 对象，第十轮）**：`t15` 新增「变换后的圆」上的点
+  （沿 `XFORM_KINDS` 解包基类型为圆 → `Point(<变换后的圆>)`，位置交给 GeoGebra）：
+  **`emitted=236087 rate=57.99%`**（`t15` 发射 10,858→11,668，`point on unsupported path` 4,641→3,853）。
 - `tag 2311` 表达式解码覆盖 **57079/57112 = 99.9%**（`node tools/exprcov.js <语料目录>`）。
 - `node test/smoke.js` → `SMOKE PASSED`。
 

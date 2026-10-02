@@ -225,6 +225,25 @@ if (fs.existsSync(circSrc)) {
     /^Translate\(P,\(Length\([^)]+\)\)\*Vector\(\(0,1\)\)\)$/.test(e6 || ''), e6);
 }
 
+// --- a point on a *transformed* circle (the path is an affine image of a circle):
+//     keep it constrained to (and animatable along) the transformed conic by emitting
+//     Point(<conic>); the initial position is left to GeoGebra (the stored parameter is
+//     in the base circle's frame, so deriving <coords> would need the composed transform). ---
+{
+  const sIR = { objects: [
+    { id: 1, kind: 'free', parents: [], params: [], coords: { x: 0, y: 0 }, label: 'C', srcType: 0 },
+    { id: 2, kind: 'free', parents: [], params: [], coords: { x: 100, y: 0 }, label: 'R', srcType: 0 },
+    { id: 3, kind: 'circleOn', parents: [1, 2], params: [], label: 'c', srcType: 3 },
+    { id: 4, kind: 'free', parents: [], params: [], coords: { x: 0, y: 0 }, label: 'O', srcType: 0 },
+    { id: 5, kind: 'rotateImage', parents: [3, 4], params: [-1, 6.123233995736766e-17, 90], label: 'c2', srcType: 27 },
+    { id: 6, kind: 'pointOnPath', parents: [5], params: [0.5], label: 'X', srcType: 15 },
+  ], warnings: [] };
+  const sx = unzip(irToGgb(sIR).buf).get('geogebra.xml').toString('utf8');
+  const e6 = (sx.match(/<expression label="X_" exp="([^"]*)"/) || [])[1];
+  check('t15 on a transformed circle -> Point(<transformed conic>)',
+    e6 === 'Point(c2)', e6);
+}
+
 // --- TUI helpers (src/tui-util.js) and job pipeline (bin/tui.js) ---
 check('tui: recognises .gsp/.ggb', U.isConvertible('a.gsp') && U.isConvertible('B.GGB') && !U.isConvertible('a.txt'));
 check('tui: default output swaps the extension',

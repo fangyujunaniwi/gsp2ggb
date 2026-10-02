@@ -768,6 +768,15 @@ function planOf(o, byId) {
           return { elem: 'point', exprTpl: 'Point(' + R(path.id) + ',' + fmt(t / cur.parents.length) + ')',
             args: [path.id], noAnim: true, warn: 'point on transformed polygon (offset/n)' };
         }
+        // transformed circle: the base is a circle, so the image is still a conic and
+        // GeoGebra accepts Point(<conic>).  Keep the point constrained to (and animatable
+        // along) the transformed circle; the initial position is left to GeoGebra — the
+        // stored parameter lives in the *base* circle's frame, so deriving <coords> here
+        // would require composing the transform.  (Same policy as a one-parameter circle.)
+        if (cur && CIRC_KINDS.has(cur.kind) && cur.parents.length === 2) {
+          return { elem: 'point', exprTpl: 'Point(' + R(path.id) + ')', args: [path.id],
+            warn: 'point on transformed circle: initial position left to GeoGebra' };
+        }
       }
       // circle path: the two-parameter form is a unit direction (cos,sin) in a y-up frame
       // (see gspPosXY).  Emit a real free-on-path point — Point(circle) + <coords> — so it
@@ -1620,4 +1629,5 @@ function ggbToIR(buf) {
 
 module.exports = { irToGgb, ggbToIR, SCALE, toGgb, toGsp, FUNCS,
   // internals exposed for diagnostics/probes (tools/*): not part of the public API
-  planOf, straightRef, elemTypeOf, isPointish, XFORM_KINDS, LINE_KINDS, SEG_KINDS, sketchFrame, plotDomain };
+  planOf, straightRef, elemTypeOf, isPointish, XFORM_KINDS, LINE_KINDS, SEG_KINDS, sketchFrame, plotDomain,
+  coordSysRef, axisScaleRef, unitScaleOf, axisHorizontal };

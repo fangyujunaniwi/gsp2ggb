@@ -5,7 +5,7 @@
 > **接手先跑（自检，项目根 = 本目录）**：
 > ```powershell
 > node test/smoke.js                    # 应输出 SMOKE PASSED（无需语料）
-> node tools/emitstats.js "<语料根>"    # 全树 1478 文件基线：objects=407095 emitted=228234 rate=56.06%（2026-10-03）
+> node tools/emitstats.js "<语料根>"    # 全树 1478 文件基线：objects=407095 emitted=236087 rate=57.99%（2026-10-03）
 > node tools/exprcov.js  "<语料根>"     # 2311 解码覆盖率 57079/57112 = 99.9%
 > ```
 > 语料按本机实际路径传入（开发机为 `D:\Program Files (x86)\Sketchpad5`），或设 `GSP_DIR` 环境变量，
@@ -56,6 +56,16 @@
     （加载时由 coords 反解路径参数）。数字（参数）目标还需 GeoGebra 滑块区间才可动画，暂不支持。
 
 ## 当前状态（2026-09-27 建；2026-10-01 交替机续作）
+- ✅ **本机续作（2026-10-03，第十轮）：`t15` 新增「变换后的圆」上的点。**
+  1. `point on unsupported path` 的 4,641 条中，约 700 条的路径是**变换后的圆**
+     （`rotateImage`/`translateImage`/`implicitRotate`，基类型 `circleOn`/`circleRadiusObj`），
+     而旧代码只识别“**未变换**的圆”（`CIRC_KINDS.has(path.kind)`）。
+  2. 现扩展到「沿 `XFORM_KINDS` 解包后基类型是圆」：发 `Point(<变换后的圆>)`——保持约束与可动画性；
+     位置参数存于**基圆**参照系、需复合变换，故不附 `<coords>`，初始位置交给 GeoGebra（不猜）。
+     受控样例 `c2 = Rotate(c,90°,O)`、`X_ = Point(c2)`，真机 GeoGebra 打开 `ok=True`。
+  3. 全树复测：**`emitted 228234 → 236087`（rate 56.06% → 57.99%，+7,853）**；
+     `t15` 发射 10,858→11,668、`point on unsupported path` 4,641→3,853，其余为级联。
+     `node test/smoke.js` 新增 1 条断言。
 - ✅ **本机续作（2026-10-03，第九轮）：定性并落地 `t24` = 定角 + 标记距离平移（`FixedAngleMarkedDistance`）。**
   1. 用户按 `ref-ctrl/jsp-samples/README-真值草图-t24.md` 制作了 4 对控制草图；其中
      `translate_fixedangle0/90_markeddist.gsp+.htm` 显示 `.htm` 为
