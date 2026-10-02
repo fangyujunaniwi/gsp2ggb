@@ -1,12 +1,12 @@
 # 交接说明 HANDOFF — gsp-conv
 
-> 本文件用于在另一台电脑上继续本项目。生成时间：2026-09-26；最近更新：2026-10-01（项目已上移到根目录 + 本机复测）。
+> 本文件用于在另一台电脑上继续本项目。生成时间：2026-09-26；最近更新：2026-10-02。
 >
 > **接手先跑（自检，项目根 = 本目录）**：
 > ```powershell
 > node test/smoke.js                    # 应输出 SMOKE PASSED（无需语料）
-> node tools/emitstats.js "<语料根>"    # 本机实测：files=1478 objects=407095 emitted=132061 rate=32.44%
-> node tools/exprcov.js  "<语料根>"     # 本机实测：2311 解码 57370/57607 = 99.6%
+> node tools/emitstats.js "<语料根>"    # 1430 文件基线：objects=400149 emitted=211364 rate=52.82%（2026-10-02）
+> node tools/exprcov.js  "<语料根>"     # 2311 解码覆盖率 57079/57112 = 99.9%
 > ```
 > 语料按本机实际路径传入（开发机为 `D:\Program Files (x86)\Sketchpad5`），或设 `GSP_DIR` 环境变量，
 > 详见 `SETUP.md`。注意：下文历史记录里的 `1430 文件`/`400149 对象` 是**不含 Samples/Tool Folder**
@@ -500,7 +500,7 @@
 | `src/ggb.js` | `irToGgb` / `ggbToIR`、SCALE、header() |
 | `src/ir2gsp.js` | IR → `.gsp`（模板克隆 + 父引用重映射 + 规范顺序） |
 | `src/gsp-template.json` | 215 个真实对象块骨架，覆盖 ~120 类型 |
-| `tools/*` | 诊断/验证工具，见 README（含 `corpus.js`、`emitstats.js`、`cascade.js`、`jspextract.js`） |
+| `tools/*` | 诊断/验证工具，见 `Tech_Details.md`（含 `corpus.js`、`emitstats.js`、`cascade.js`、`jspextract.js`） |
 | `tools/package.ps1` | 打干净的交接 zip（剔除 `out/`、`test/out/` 生成物） |
 | `tools/shotgsp.ps1` / `tools/shotggb.ps1` | 截取几何画板 / GeoGebra 窗口（自动探测可执行文件，可 `-Exe` 覆盖） |
 | `test/smoke.js` | **自包含自检**（仅用内置 `t.gsp`，无需语料）：`node test/smoke.js` → `SMOKE PASSED` |
@@ -511,13 +511,14 @@
 | `ref-ctrl/` | **真值样本集**：12 个控制草图 + `jsp-samples/`（`.gsp`+`.htm` 配对）+ `jar/`、`decomp/`（CFR 反编译） |
 | `reference/` | 已知可用 `.ggb`/XML 参照样本（`header()` 格式来源） |
 | `t.gsp` | 本轮修复的测试草图（函数图 + 自定义坐标系） |
-| `README.md` | 容器格式逆向事实 / 语义表 / 验证 / 限制 / 工具清单（中文） |
-| `README_EN.md` | 同上，英文版 |
+| `README.md` / `README_EN.md` | **面向用户**的使用说明（安装、命令、TUI、常见问题） |
+| `Tech_Details.md` | **技术细节**（架构、容器格式、类型语义、验证、已知限制、工具清单） |
+| `TYPE_TABLE.md` | 全部 `tXX` 类型速查表 |
 | `SETUP.md` | **交接与部署说明**：环境要求、上手、`GSP_DIR` 等路径变量、打包、验收基线 |
 | `package.json` / `.gitignore` | npm 脚本（`convert`/`selftest`/`stats`）与忽略规则；无第三方依赖 |
 
 ## 依赖环境（本机实际路径）
-- Node.js ≥ 16（本机 v24.13.1；另一台为 v24.21）。**核心转换无第三方依赖，无需 `npm install`。**
+- Node.js ≥ 18（本机 v24.13.1；另一台为 v24.21）。**核心转换无第三方依赖，无需 `npm install`。**
 - 机器相关位置通过**环境变量**读取（未设置则回退到本机默认值）：
   `GSP_DIR`（语料根，默认 `D:\Sketchpad5`）、`GSP_SAMPLES`、`GSP_TOOLS`、
   `GSP_EXE`（几何画板）、`GGB_EXE`（GeoGebra）。详见 `SETUP.md`。

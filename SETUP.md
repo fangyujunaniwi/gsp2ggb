@@ -14,7 +14,7 @@
 ## 2. 环境要求
 
 - **Windows**（截图/进程控制用 PowerShell；**转换本身可在任意平台**运行）。
-- **Node.js ≥ 16**（开发机为 v24.21.0）。
+- **Node.js ≥ 18**（开发机为 v24.21.0）。
 - **无第三方依赖**，**不需要 `npm install`**。
 - 可选、仅用于人工核对：GeoGebra Classic 5.4、几何画板 5.06。**转换过程不需要它们**。
 
@@ -76,13 +76,14 @@ $env:GGB_EXE = 'C:\Program Files\GeoGebra 5.4\GeoGebra.exe'
 | `bin/cli.js` | 命令行入口（单文件 + 批量） |
 | `bin/tui.js` | 交互式终端界面（纯 Node + ANSI；非 TTY 时逐行编号菜单） |
 | `src/` | 全部转换逻辑：`gsp.js` 读 `.gsp`；`ggb.js` 写/读 `.ggb`；`ir2gsp.js` + `gsp-template.json` 写 `.gsp`；`expr.js` 解码 `tag 2311` 表达式；`zip.js`、`jsp.js`；`convert.js`/`tui-util.js` 供 CLI/TUI 共用 |
-| `tools/` | 诊断 / 回归 / 截图脚本（清单见 `README.md` 末尾） |
+| `tools/` | 诊断 / 回归 / 截图脚本（清单见 `Tech_Details.md` 末尾） |
 | `test/` | 早期探针脚本 + `smoke.js` 自检 |
 | `reference/` | 已知可用的 `.ggb` / XML 参照样本（`.ggb` 表头格式的来源） |
 | `ref-ctrl/` | **真值样本集**：微型控制草图、其 JavaSketchpad `.htm` 导出、`jsp5.jar` 反编译源码、`cfr.jar` |
 | `t.gsp` | 函数图 + 自定义坐标系的测试草图 |
-| `README.md` | 容器格式逆向事实、语义表、验证、已知限制、工具清单（中文） |
-| `README_EN.md` | 同上，英文版 |
+| `README.md` / `README_EN.md` | 面向用户的使用说明（中 / 英）：安装、命令、TUI、常见问题 |
+| `Tech_Details.md` | 技术细节（中文）：架构、容器格式、类型语义、验证、已知限制、工具清单 |
+| `TYPE_TABLE.md` | 全部 GSP 对象类型（`tXX`）速查表 |
 | `HANDOFF.md` | 中文交接说明：当前状态、各轮语义结论、下一步 |
 | `SETUP.md` | 本文件 |
 
@@ -141,7 +142,7 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
 
 `.ggb → .gsp`：生成的 `.gsp` 在真实几何画板 5.06 打开并渲染；`polygon_reflections` 往返后 37 个对象（含 21 条反射）全部还原。
 
-已知限制见 `README.md` 的 **已知限制**；主要跳过项：`t77/t89/t88/t90/t24/t75/t32` 等迭代/列表/自定义工具类、
+已知限制见 `Tech_Details.md` 的 **已知限制**；主要跳过项：`t77/t89/t88/t90/t24/t75/t32` 等迭代/列表/自定义工具类、
 `point on unsupported path`、`t62` 中目标被上游跳过/源目标不明的移动按钮与数字目标动画按钮、
 `t94`（宿主为直线/圆、或跨宿主投影的情形）、`t35`（轨迹的直线情形/嵌套轨迹）、
 以及 `t33` 中「中心非点」的同名异类结构等，均**跳过而非猜测**。
@@ -153,7 +154,7 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
 - **中文文件名 / 路径**：PowerShell 用 `>` 重定向会写成 UTF-16；经 PowerShell→Node 传中文参数也可能乱码。
   批量转换请让 **Node 自己在目录内遍历**（`tools/*.js` 已如此），或用 `--outdir`。
   命令行输出建议加 `| Out-File -Encoding utf8` 或统一用 UTF-8 控制台。
-- **GeoGebra 打不开生成文件**：`.ggb` 表头元素名/枚举值必须精确（详见 `README.md` 的「验证」一节）；
+- **GeoGebra 打不开生成文件**：`.ggb` 表头元素名/枚举值必须精确（详见 `Tech_Details.md` 的「验证」一节）；
   用 `tools/hybrid.js` 可做表头/正文交叉定位。
 - **覆盖率数字对不上**：确认传入了正确的语料目录（`emitstats`/`exprcov` 的第一个参数）。
 - **截图脚本拿不到窗口**：先确认 `GSP_EXE` / `GGB_EXE` 指向真实可执行文件；脚本会自动探测常见安装路径。
