@@ -18,7 +18,7 @@
 | t7 | 206 | 角平分线 `Bisector` | JSP | ✅ |
 | t8 | 7461 | 多边形 `Polygon` | JSP | ✅ |
 | t9 | 14231 | 线线交点 `Intersect` | JSP | ✅ |
-| t10 | 359 | 未映射 | — | ❌ |
+| t10 | 359 | 迭代/自定义工具的「变量槽」（1 父、无参、无坐标；父=初始值，标签=变量名） | 语料 | ❌(变量) |
 | t11 | 3765 | 线圆交点① `Intersect 1` | JSP | ✅ |
 | t12 | 4732 | 线圆交点② `Intersect 2` | JSP | ✅ |
 | t13 | 470 | 圆圆交点① `CircleCircleIntersection` | JSP/反编译 | ✅ |

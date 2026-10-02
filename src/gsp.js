@@ -322,4 +322,4 @@ function gspToIR(buf, opts) {
   };
 }
 
-module.exports = { gspToIR, parseRecords, strAt, TYPES };
+module.exports = { gspToIR, parseRecords, strAt, TYPES, decodeGspText };

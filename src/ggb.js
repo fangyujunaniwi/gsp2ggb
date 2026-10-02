@@ -1630,4 +1630,4 @@ function ggbToIR(buf) {
 module.exports = { irToGgb, ggbToIR, SCALE, toGgb, toGsp, FUNCS,
   // internals exposed for diagnostics/probes (tools/*): not part of the public API
   planOf, straightRef, elemTypeOf, isPointish, XFORM_KINDS, LINE_KINDS, SEG_KINDS, sketchFrame, plotDomain,
-  coordSysRef, axisScaleRef, unitScaleOf, axisHorizontal };
+  coordSysRef, axisScaleRef, unitScaleOf, axisHorizontal, gspPosXY };
