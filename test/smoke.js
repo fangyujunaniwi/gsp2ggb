@@ -244,6 +244,23 @@ if (fs.existsSync(circSrc)) {
     e6 === 'Point(c2)', e6);
 }
 
+// --- a circle whose on-point (which fixes its radius) is itself a transformed point:
+//     gspPosXY must resolve it so the circle point's position lands in <coords>. ---
+{
+  const sIR = { objects: [
+    { id: 1, kind: 'free', parents: [], params: [], coords: { x: 0, y: 0 }, label: 'O', srcType: 0 },
+    { id: 2, kind: 'free', parents: [], params: [], coords: { x: 200, y: 0 }, label: 'A', srcType: 0 },
+    { id: 3, kind: 'free', parents: [], params: [], coords: { x: 200, y: 200 }, label: 'B', srcType: 0 },
+    { id: 4, kind: 'translateImage', parents: [2, 1, 3], params: [], label: 'R', srcType: 16 },
+    { id: 5, kind: 'circleOn', parents: [1, 4], params: [], label: 'c', srcType: 3 },
+    { id: 6, kind: 'pointOnPath', parents: [5], params: [1, 0], label: 'X', srcType: 15 },
+  ], warnings: [] };
+  const sx = unzip(irToGgb(sIR).buf).get('geogebra.xml').toString('utf8');
+  const m = sx.match(/<element type="point" label="X[^"]*">[\s\S]*?<coords x="([^"]*)" y="([^"]*)"/);
+  check('circle point over a transformed radius point gets <coords>',
+    !!m && /^8\.94/.test(m[1]), m ? (m[1] + ',' + m[2]) : 'no coords');
+}
+
 // --- t81 = the GSP "arc through three points" tool (user control sketch: clicking
 //     O, P, Q stores [O,P,Q]); GeoGebra's CircularArc(P,Q,R) = arc P->R through Q. ---
 {

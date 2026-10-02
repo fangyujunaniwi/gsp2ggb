@@ -5,7 +5,7 @@
 > **接手先跑（自检，项目根 = 本目录）**：
 > ```powershell
 > node test/smoke.js                    # 应输出 SMOKE PASSED（无需语料）
-> node tools/emitstats.js "<语料根>"    # 全树 1478 文件基线：objects=407095 emitted=241763 rate=59.39%（2026-10-03）
+> node tools/emitstats.js "<语料根>"    # 全树 1478 文件基线：objects=407095 emitted=242390 rate=59.54%（2026-10-03）
 > node tools/exprcov.js  "<语料根>"     # 2311 解码覆盖率 57079/57112 = 99.9%
 > ```
 > 语料按本机实际路径传入（开发机为 `D:\Program Files (x86)\Sketchpad5`），或设 `GSP_DIR` 环境变量，
@@ -56,6 +56,16 @@
     （加载时由 coords 反解路径参数）。数字（参数）目标还需 GeoGebra 滑块区间才可动画，暂不支持。
 
 ## 当前状态（2026-09-27 建；2026-10-01 交替机续作）
+- ✅ **本机续作（2026-10-03，第十二轮）：位置保真——`gspPosXY` 支持变换点。**
+  1. 之前圆的**圆上点**（定半径用）是变换点（如 `阴阳鱼` 的 `#2=t21`）时，`gspPosXY` 返回 null →
+     圆上点不附 `<coords>`，初始位置交给 GeoGebra 自选（会跳位）。
+  2. 现为 `gspPosXY` 增加 `translateImage`(t16)/`implicitRotate`(t21)/`rotateImage`(t27)/
+     `dilateImage`(t30)/`offsetPoint`(t17)/点镜 `reflectImage`(t34) 的**文件坐标**解析
+     （公式取自反编译的 `Translator`/`Rotater`/`Dilater`）。
+  3. 验证：`阴阳鱼` 的圆上点由“默认位置”变为正确的 `(14.36,−6.14)`（= 存储方向 6.4°），
+     真机 GeoGebra 渲染与 GSP 一致；`smoke` +1 断言（变换半径的圆上点附 `<coords>`）。
+  4. 全树复测：**`emitted 241763 → 242390`（rate 59.39% → 59.54%，+627）**——
+     增量主要是动画按钮现在有可动画目标；本改动更主要的价值是**位置保真**（不计入 emit 数）。
 - ✅ **本机续作（2026-10-03，第十一轮）：用弧真值草图定性并落地 `t79`/`t80`/`t81`。**
   1. 用户在 `ref-ctrl/jsp-samples/` 制作了 `arc_circle_PQ.gsp`、`arc_circle_QP.gsp`、
      `arc_center_two_points.gsp`（**JSP 不导出弧，`Sketch.java` 无 `Arc`，故只存 `.gsp` + 渲染**）。

@@ -378,6 +378,62 @@ function gspPosXY(o, byId, depth) {
     }
     return null;
   }
+  // ---- affine transforms (needed e.g. when a circle's on-point — which fixes its radius —
+  //      is itself a transformed point: 阴阳鱼's #2 = t21 translation of the centre) ----
+  const d = (depth || 0) + 1;
+  if (o.kind === 'translateImage' && o.parents.length === 3) {
+    const p = gspPosXY(byId.get(o.parents[0]), byId, d);
+    const a = gspPosXY(byId.get(o.parents[1]), byId, d);
+    const b = gspPosXY(byId.get(o.parents[2]), byId, d);
+    if (p && a && b) return { x: p.x + (b.x - a.x), y: p.y + (b.y - a.y) };
+    return null;
+  }
+  if (o.kind === 'implicitRotate' && o.parents.length === 1) {
+    // t21 polar translation: image = parent + d1·(cosθ, −sinθ), d1 at tag-2003 +32, θ from (−p0,p1).
+    const p = gspPosXY(byId.get(o.parents[0]), byId, d);
+    const raw = o._raw && o._raw.paramRaw;
+    const d1 = raw && raw.length >= 40 ? raw.readDoubleLE(32) : NaN;
+    const p0 = (o.params || [])[0], p1 = (o.params || [])[1];
+    if (p && Number.isFinite(d1) && Number.isFinite(p0) && Number.isFinite(p1)) {
+      const th = Math.atan2(-p0, p1);
+      return { x: p.x + d1 * Math.cos(th), y: p.y - d1 * Math.sin(th) };
+    }
+    return null;
+  }
+  if (o.kind === 'rotateImage' && o.parents.length === 2) {
+    // GSP Rotater: x' = x·cosA + y·sinA, y' = y·cosA − x·sinA (x,y relative to the centre).
+    const p = gspPosXY(byId.get(o.parents[0]), byId, d);
+    const c = gspPosXY(byId.get(o.parents[1]), byId, d);
+    if (p && c) {
+      const A = rotateAngleDeg(o) * Math.PI / 180;
+      const ca = Math.cos(A), sa = Math.sin(A);
+      const x = p.x - c.x, y = p.y - c.y;
+      return { x: x * ca + y * sa + c.x, y: y * ca - x * sa + c.y };
+    }
+    return null;
+  }
+  if (o.kind === 'dilateImage' && o.parents.length === 2) {
+    const p = gspPosXY(byId.get(o.parents[0]), byId, d);
+    const c = gspPosXY(byId.get(o.parents[1]), byId, d);
+    const k = (o.params || [])[0];
+    if (p && c && Number.isFinite(k)) return { x: c.x + k * (p.x - c.x), y: c.y + k * (p.y - c.y) };
+    return null;
+  }
+  if (o.kind === 'offsetPoint' && o.parents.length >= 1 && (o.params || []).length >= 2) {
+    const p = gspPosXY(byId.get(o.parents[0]), byId, d);
+    if (p) return { x: p.x + o.params[0], y: p.y + o.params[1] };
+    return null;
+  }
+  if (o.kind === 'reflectImage' && o.parents.length === 2) {
+    // Only the point mirror (point symmetry) is resolved here.
+    const m = byId.get(o.parents[1]);
+    if (isPointish(m)) {
+      const p = gspPosXY(byId.get(o.parents[0]), byId, d);
+      const mp = gspPosXY(m, byId, d);
+      if (p && mp) return { x: 2 * mp.x - p.x, y: 2 * mp.y - p.y };
+    }
+    return null;
+  }
   return null;
 }
 
