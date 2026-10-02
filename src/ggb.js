@@ -1011,6 +1011,13 @@ function planOf(o, byId) {
       }
       return skip('arc needs conic + 2 points');
     }
+    case 'arcCenter': {
+      // t80 = an arc of the circle centred at parents[0] through P1, P2 (probe: parents[0]
+      // is equidistant from P1/P2 -> it is the centre).  The sweep DIRECTION has not been
+      // verified with a control sketch (JavaSketchpad does not export arcs), so it stays
+      // skipped rather than risk a mirrored arc.
+      return skip('centred arc (t80): sweep direction not verified');
+    }
     case 'circle3Points': {
       // t81 = a circle through three points.  Verified 2026-10-03 by rendering the
       // user's control sketch arc_center_two_points.gsp: the t81 object is a *complete*
