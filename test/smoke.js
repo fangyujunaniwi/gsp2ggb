@@ -280,6 +280,22 @@ if (fs.existsSync(circSrc)) {
   check('t95 -> Point(segment, PathParameter(point))', e9 === 'Point(t,PathParameter(Q))', e9);
 }
 
+// --- t76 = a GSP iteration x_{k+1}=f(x_k): parents [preimage, image, ...], count at
+//     tag-2314 offset 16, emitted as GeoGebra IterationList(f, iv, {start}, n). ---
+{
+  const it = Buffer.alloc(24); it.writeUInt32LE(5, 16);
+  const sIR = { objects: [
+    { id: 1, kind: 'free', parents: [], params: [], coords: { x: 0, y: 0 }, label: 'O', srcType: 0 },
+    { id: 2, kind: 'free', parents: [], params: [], coords: { x: 200, y: 0 }, label: 'P', srcType: 0 },
+    { id: 3, kind: 'rotateImage', parents: [2, 1], params: [-0.866025403784, 0.5, 60, 0], label: 'P_2', srcType: 27 },
+    { id: 4, kind: 'iteration', parents: [2, 3, 3], params: [], label: '', srcType: 76, _raw: { rich: { 2314: it } } },
+  ], warnings: [] };
+  const sx = unzip(irToGgb(sIR).buf).get('geogebra.xml').toString('utf8');
+  const m = sx.match(/<expression label="[^"]*" exp="IterationList\(([^"]*)\)" \/>/);
+  check('t76 iteration -> IterationList(f, iv, {start}, n)',
+    !!m && m[1] === 'Rotate(iv,60°,O),iv,{P},5', m ? m[1] : 'no iteration');
+}
+
 // --- t81 = the GSP "arc through three points" tool (user control sketch: clicking
 //     O, P, Q stores [O,P,Q]); GeoGebra's CircularArc(P,Q,R) = arc P->R through Q. ---
 {
