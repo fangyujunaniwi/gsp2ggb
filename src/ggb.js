@@ -780,11 +780,10 @@ function customXformPlan(o, byId) {
     return { skip: 'custom transform: unexpected parent layout' };
   const pp = planOf(byId.get(ps[0]), byId);
   if (!pp || pp.skip || !pp.exprTpl) return { skip: 'custom transform: prototype not emittable' };
-  // Only point-valued transforms are reconstructed by pure substitution.
+  // Only point-valued prototypes are reconstructed by pure substitution.
   if (pp.elem !== 'point' && pp.elem !== 'text')
     return { skip: 'custom transform: only point-valued prototypes supported' };
-  const Xid = ps[1];
-  if (!isPointish(byId.get(Xid))) return { skip: 'custom transform: preimage is not a point' };
+  const Xid = ps[1], X = byId.get(Xid);
   let Pid = null;
   for (let i = 2; i < ps.length - 1; i++)
     if (pp.exprTpl.indexOf('{#' + ps[i] + '}') >= 0 && isPointish(byId.get(ps[i]))) { Pid = ps[i]; break; }
@@ -794,11 +793,23 @@ function customXformPlan(o, byId) {
   if (Pid == null) return { skip: 'custom transform: definition source not referenced' };
   if (!isPointish(byId.get(Pid))) return { skip: 'custom transform: definition source is not a point' };
   const toks = '{#' + Pid + '}';
-  const tpl = pp.exprTpl.split(toks).join('{#' + Xid + '}');
-  if (tpl === pp.exprTpl) return { skip: 'custom transform: substitution had no effect' };
-  const args = [...new Set((pp.args || []).map(a => a === Pid ? Xid : a).concat([Xid]))];
-  return { elem: pp.elem, exprTpl: tpl, args,
-    warn: 'custom-transform image: P->X substitution into the prototype' };
+  const sub = id => pp.exprTpl.split(toks).join('{#' + id + '}');
+  const argsOf = extra => [...new Set((pp.args || []).map(a => a === Pid ? Xid : a).concat(extra))];
+  const warn = 'custom-transform image: P->X substitution into the prototype';
+  // Point preimage: substitute X directly.
+  if (isPointish(X))
+    return { elem: pp.elem, exprTpl: sub(Xid), args: argsOf([Xid]), warn };
+  // Segment / circle preimage: transform its defining points (the pointwise image of an
+  // affine transform is the same figure through the images of its defining points).
+  const pts = X && (SEG_KINDS.has(X.kind) ? X.parents
+    : (CIRC_KINDS.has(X.kind) && X.parents.length >= 2 ? X.parents.slice(0, 2) : null));
+  if (pts && pts.length >= 2 && pts.every(id => isPointish(byId.get(id)))) {
+    const a = sub(pts[0]), b = sub(pts[1]);
+    if (SEG_KINDS.has(X.kind))
+      return { elem: 'segment', exprTpl: 'Segment(' + a + ',' + b + ')', args: argsOf(pts), warn };
+    return { elem: 'conic', exprTpl: 'Circle(' + a + ',' + b + ')', args: argsOf(pts), warn };
+  }
+  return { skip: 'custom transform: unsupported preimage kind' };
 }
 
 // ---------- planning: IR object -> emitable plan ----------
