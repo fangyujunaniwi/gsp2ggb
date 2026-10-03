@@ -158,6 +158,8 @@ const TYPES = {
   87: { k: 'measureSlope' },    // slope of segment (2nd parent = value ref, ignored)
   94: { k: 'pathParam' },       // point's relative position along its host path (PointOnObject)
   95: { k: 'pointAtParam' },    // point on a path at a parameter given by the other parent
+  101:{ k: 'customXformPt' },   // custom-transformation image of a point: [P', X, P, ..., P'] (P->X substitution)
+  102:{ k: 'customXform' },     // custom-transformation image of a non-point (same parent layout)
   113:{ k: 'angle' },           // 3 points, middle = vertex (geometric angle)
   120:{ k: 'angleValue' }       // measurement of an angle object (parent = t113)
 };

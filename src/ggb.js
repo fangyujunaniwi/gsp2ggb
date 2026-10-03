@@ -765,6 +765,42 @@ function iterationListPlan(it, byId, startId) {
     warn: 'GSP iteration -> IterationList(f, iv, start, ' + c.cntTpl + ')' };
 }
 
+// t101/t102 = a custom-transformation image.  Parent layout (verified on the five
+// user-made truth sketches in ref-ctrl/truth-tools/):
+//   [P', X, <definition objects…>, P']      (always parents[0] === parents[last])
+//   - P' = the prototype image (the object produced when the transform was defined);
+//   - X  = the object the transform is applied to (parents[1]);
+//   - P  = the definition's source point, a middle parent that P' 's expression uses.
+// Applying the transform replaces P with X in P' 's construction.  Confirmed exactly
+// with ct_tf_min.gsp: A centre, B rotated 90°→B', then P→P' = rotate(B, P, 90°) — i.e.
+// P' 's expression `Rotate(B,90°,A)` with A substituted by P.
+function customXformPlan(o, byId) {
+  const ps = o.parents;
+  if (ps.length < 4 || ps[0] !== ps[ps.length - 1])
+    return { skip: 'custom transform: unexpected parent layout' };
+  const pp = planOf(byId.get(ps[0]), byId);
+  if (!pp || pp.skip || !pp.exprTpl) return { skip: 'custom transform: prototype not emittable' };
+  // Only point-valued transforms are reconstructed by pure substitution.
+  if (pp.elem !== 'point' && pp.elem !== 'text')
+    return { skip: 'custom transform: only point-valued prototypes supported' };
+  const Xid = ps[1];
+  if (!isPointish(byId.get(Xid))) return { skip: 'custom transform: preimage is not a point' };
+  let Pid = null;
+  for (let i = 2; i < ps.length - 1; i++)
+    if (pp.exprTpl.indexOf('{#' + ps[i] + '}') >= 0 && isPointish(byId.get(ps[i]))) { Pid = ps[i]; break; }
+  if (Pid == null)
+    for (let i = 2; i < ps.length - 1; i++)
+      if (pp.exprTpl.indexOf('{#' + ps[i] + '}') >= 0) { Pid = ps[i]; break; }
+  if (Pid == null) return { skip: 'custom transform: definition source not referenced' };
+  if (!isPointish(byId.get(Pid))) return { skip: 'custom transform: definition source is not a point' };
+  const toks = '{#' + Pid + '}';
+  const tpl = pp.exprTpl.split(toks).join('{#' + Xid + '}');
+  if (tpl === pp.exprTpl) return { skip: 'custom transform: substitution had no effect' };
+  const args = [...new Set((pp.args || []).map(a => a === Pid ? Xid : a).concat([Xid]))];
+  return { elem: pp.elem, exprTpl: tpl, args,
+    warn: 'custom-transform image: P->X substitution into the prototype' };
+}
+
 // ---------- planning: IR object -> emitable plan ----------
 // plan = { skip: why } | { elem, exprTpl?, args?, free:{xy|value}, label?, warn? }
 // exprTpl uses {#id} tokens replaced with final labels.
@@ -1390,6 +1426,9 @@ function planOf(o, byId) {
       }
       return iterationListPlan(it, byId, o.parents[0]);
     }
+    case 'customXformPt':      // t101 = custom-transformation image of a point
+    case 'customXform':        // t102 = same, for a non-point result
+      return customXformPlan(o, byId);
     case 'ratioMeasure': {
       const r = ratioTemplate(o, byId);
       if (r) return { elem: 'numeric', exprTpl: r.tpl, args: r.ids };
