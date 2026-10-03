@@ -152,6 +152,26 @@
   3. 全树复测：**`emitted 228234 → 236087`（rate 56.06% → 57.99%，+7,853）**；
      `t15` 发射 10,858→11,668、`point on unsupported path` 4,641→3,853，其余为级联。
      `node test/smoke.js` 新增 1 条断言。
+- 🔬 **本机续作（2026-10-03，第二十七轮）：迭代族剩余缺口普查 + 关键更正。**
+  1. 现状（本机 1430 语料）：`t76` emit26/skip58、`t77` emit812/skip6158、`t89` emit457/skip1939；
+     **全跳过**：`t90` 4411、`t75` 3681、`t88` 615、`t10` 359。
+  2. `t77` 跳过主因：`start is not a point/number` 1881、`image not emittable` 1667、
+     `image does not depend on the preimage (multi-variable?)` 1428、`not an iteration object` 672、
+     `segment iterate image: endpoints are not points/numbers` 404。
+  3. **更正**：JSP **不会**内联迭代——`ref-ctrl/jsp-samples/iter_*.htm` 里迭代对象被整个丢弃
+     （`iter_point_rotate` 只剩 `O/P/P''` 三个对象）。故 **迭代族没有 JSP 真值**，只能靠控制草图+真机渲染核对。
+  4. 新定性：
+     - **`t75`（3681）＝"动态着色/渐变副本"**（`渐变色线段.gsp`：`t75 [点或线段, 比例参数]`；
+       对应反编译 `ColorizedSpectrum/HSV/RGB/Grayscale`）。其**几何 = parent[0] 的副本**，只有颜色随参数变；
+       GeoGebra 无动态颜色 → 只能发静态副本或跳过（无几何损失）。
+     - **`t90`（4411）＝"带 `tag 2300` 的对象"**，形状 `[对象, 数值/标签]`（`p1` 72% 是 `t48`）；
+       例 `坐标随点`：`t90 [平移点, 坐标对标签]`、`Sample`：`t90 [放大点(t30)/变换点(t16), t48]`。
+       与 `t75` 极可能同族（动态着色/标注），**几何 = parent[0]**。
+     - **`t88`（615）＝迭代"终点"点**（`牛顿求根序列`：`#15 标签 "x[n]" = t88 [t77]`，父 92% 是 `t77`）→
+       或可发 `Element(IterationList, 次数)`，需渲染核对。
+     - **`t10`（359）＝迭代/工具的"变量槽"**（父多为 `[圆/对象]`）。
+  5. 结论：迭代族**核心（t76/t77/t89 单点/单值映射）已落地**；剩余多为**无几何的显示对象**（t75/t90）或
+     **缺真值**（t88/多映射 t89）。继续需新的**渲染核对控制草图**；否则宜转其它根因。
 - 🔬 **本机续作（2026-10-03，第二十六轮）：自建真值定性 `t32/t101/t102`＝"宏实例"。**
   1. 真值文件（`ref-ctrl/truth-tools/`，用户用本机 GSP5 制作）：
      - `ct_midpoint/ct_circumcircle/ct_fractal`：**本文件内定义的工具**，使用处被 GSP5 **内联**（不产生 `t32`），
