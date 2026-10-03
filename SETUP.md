@@ -161,7 +161,8 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
   `Sequence(Segment(Element(L_P,k),Element(L_Q,k)),…)`：**`emitted=244370 rate=60.03%`**（+303）。
 - **2026-10-03 本机续作（语料 `D:\Sketchpad5` = `1430` 文件 / `400149` 对象；与上文 `1478` 文件口径
   **不可直接相减**）**：第二十轮 `pointOnPath` 支持弧/轨迹路径、`t95` 计入点类；第二十一轮支持
-  “无参数”线段/直线上与变换路径上的点、以及变换后的直线：**`emitted=256726 rate=64.16%`**（召回后起点 237,867）。
+  “无参数”线段/直线上与变换路径上的点、以及变换后的直线；第二十二轮 `t95` 放开到非线段路径：
+  **`emitted=257680 rate=64.40%`**（召回后起点 237,867）。
 - `tag 2311` 表达式解码覆盖 **57079/57112 = 99.9%**（`node tools/exprcov.js <语料目录>`）。
 - `node test/smoke.js` → `SMOKE PASSED`。
 

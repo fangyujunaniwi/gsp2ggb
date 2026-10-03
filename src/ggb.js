@@ -1297,19 +1297,23 @@ function planOf(o, byId) {
       // t95 = a point on a path at the parameter given by the other parent.  Verified with
       // 滑块变速.gsp and 可控虫子(inRm).gsp: parents are [value, path] (e.g. [t94 path
       // position of Q on one segment, another segment]) and the image is the point on
-      // <path> at <value>.  Only segments are emitted: GeoGebra's segment path parameter
-      // equals GSP's φ ∈ [0,1].  Other hosts (polygon/circle/arc/locus) are left for
-      // verification rather than guessed.
+      // <path> at <value>.  Segment paths are exact (GeoGebra's segment parameter =
+      // GSP's φ ∈ [0,1]).  For other paths (polygon/circle/arc/locus) the object is still
+      // a Path in GeoGebra and Point(path, t) keeps the point on it, so we emit the same
+      // form — the initial position along the path may differ, the same policy as a
+      // one-parameter circle point.
       if (P.length !== 2) return skip('point at a parameter needs a value + a path');
-      const isSeg = x => x && SEG_KINDS.has(x.kind);
+      const PATHY = x => x && (SEG_KINDS.has(x.kind) || LINE_KINDS.has(x.kind) || CIRC_KINDS.has(x.kind) ||
+        x.kind === 'arc' || x.kind === 'arcCenter' || x.kind === 'arc3Points' ||
+        x.kind === 'locus' || x.kind === 'polygon');
       let pathId = null, valObj = null;
-      if (isSeg(P[1]) && !isSeg(P[0])) { pathId = o.parents[1]; valObj = P[0]; }
-      else if (isSeg(P[0]) && !isSeg(P[1])) { pathId = o.parents[0]; valObj = P[1]; }
+      if (PATHY(P[1]) && !PATHY(P[0])) { pathId = o.parents[1]; valObj = P[0]; }
+      else if (PATHY(P[0]) && !PATHY(P[1])) { pathId = o.parents[0]; valObj = P[1]; }
       else return skip('point at a parameter: cannot tell path from value');
       const v = markerNumeric(valObj, byId);
       if (!v) return skip('point at a parameter: value not decodable');
       return { elem: 'point', exprTpl: 'Point(' + R(pathId) + ',' + v.exprTpl + ')',
-        args: [pathId].concat(v.args), warn: 'point on a segment at a parameter (t95)' };
+        args: [pathId].concat(v.args), warn: 'point on a path at a parameter (t95)' };
     }
     case 'iteration':          // t76: count in tag 2314 +16
     case 'iterationParam': {   // t89: count is parents[0] (depth iteration)
