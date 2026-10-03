@@ -202,8 +202,12 @@
     `t70` = 它的变体，并入同一分支。**此前 `t69` 被误映射为 `Calc`**，几近全跳过。
   - `t94` = **`PointOnObject` 的「点在宿主路径上的相对位置」**（数值）：当点为 `pointOnPath`
     且与其宿主路径相同、宿主为线段/多边形（含仿射像）时发 **`PathParameter(p)`**（JSP 样本
-    `Point on object(3, 0.174345)` 与点的 `2003` 参数逐位相符）。宿主为直线/圆、或 `p1` 不是
-    点的宿主时仍跳过（未验证）。
+    `Point on object(3, 0.174345)` 与点的 `2003` 参数逐位相符）。
+    **跨宿主**（点被量到另一条直线）时，依据反编译 `PointOnStraight.mapPointToHost`：GSP 把点投到宿主
+    **直线**再取 `relativeLocation`，即投影参数；线段先夹到端点（∈[0,1]）。发射
+    `((xP-xA)(xB-xA)+(yP-yA)(yB-yA))/((xB-xA)²+(yB-yA)²)`（线段 `min(1,max(0,…))`）。
+    *仍跳过*：宿主为**圆**（`PointOnCircle` 存角度，与 GeoGebra `PathParameter` 的参照系未验证）、
+    多边形/非直线宿主；线段投影超界时“是否夹取”按 GSP 的 `Constrain` 推断（尚无独立真值）。
 - **`t47` = `SimpleMeasure` 的“Ratio”**（反编译 `SimpleMeasure.java` +
   `computed3PtRatio.java`），发射为 GeoGebra **数值**（不仅是作为伸缩标记）：
   - *比值/线段*（measureType 8，两个线段父对象）→ `Length(s1)/Length(s2)`；

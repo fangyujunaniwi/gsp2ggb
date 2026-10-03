@@ -152,6 +152,17 @@
   3. 全树复测：**`emitted 228234 → 236087`（rate 56.06% → 57.99%，+7,853）**；
      `t15` 发射 10,858→11,668、`point on unsupported path` 4,641→3,853，其余为级联。
      `node test/smoke.js` 新增 1 条断言。
+- ✅ **本机续作（2026-10-03，第二十四轮）：`t94` 跨宿主（点投影到另一条直线）。**
+  1. 真值依据：反编译 `PointOnStraight.mapPointToHost` + `Constrain`——GSP 把点投到宿主的**直线**后取
+     相对位置 `relativeLocation = (this.x-x1)/dX`（或 y 方向），即**投影参数**；线段（`myStraightType 0`）
+     会先夹到端点，故参数 ∈ [0,1]。同宿主情形（第二十轮已落地的 `PathParameter`）即此逻辑特例。
+  2. 现对 `p0` 为点、`p1` 基线为 `segment`/`line2pt`（含仿射像）的跨宿主 `t94` 发射
+     `((xP-xA)(xB-xA)+(yP-yA)(yB-yA))/((xB-xA)²+(yB-yA)²)`；线段再套 `min(1,max(0,…))` 夹取。
+     直接以端点坐标书写，绕开 GeoGebra `PathParameter` 在直线/异参照系下的不确定性。
+     例：`橡皮筋(一线天)` 的 `D` 落在 `Line(A,C)` 上，投影式正确；真机打开 `ok=True err=False`。
+  3. `point-position measure: unsupported host` **2348 → 1155**（余下宿主为圆/多边形/非路径）；
+     覆盖率 **67.58% → 69.75%**（270,411 → **279,105**，+8,694）。圆宿主（`PointOnCircle` 存角度，
+     参照系未验证）与投影超界时“是否夹取”仍属推断，已在 `Tech_Details.md` 标注。
 - ✅ **本机续作（2026-10-03，第二十三轮）：坐标系解析支持“轴单位＝数值测量”。**
   1. 此前 `axisScaleRef` 只认单位点（`unitX`/`squareUnitY`/`rectUnitY`）；当轴的单位是一个**数值测量**
      （`t48` 计算 / `t37` 距离 / 参数…，例：`Sample.gsp` cs#129 的单位参数「单位点」=1）时返回 null，

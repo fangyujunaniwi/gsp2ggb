@@ -1310,6 +1310,27 @@ function planOf(o, byId) {
           return { elem: 'numeric', exprTpl: 'PathParameter(' + R(p0.id) + ')', args: [p0.id],
             warn: 'point position along its path (PathParameter)' };
       }
+      // Cross-host: the point is measured against a *different* straight.  GSP's
+      // PointOnStraight.mapPointToHost projects the point onto that straight's line and,
+      // for a segment (myStraightType 0), clamps to its endpoints; the value is that same
+      // relative location.  Emit the projection parametre, clamped for segments (a point
+      // on a segment always has a parametre in [0,1], so this matches GSP's Constrain).
+      // Verified structural cases: `Sample` #13 = a free endpoint of its segment (→0);
+      // `多边形(蚂蚁制作)` #4/#9 measure against a *circle* instead (skipped: angle convention).
+      if (p0 && isPointish(p0) && p1) {
+        const base = straightBaseKind(p1, byId, 0);
+        if (base === 'segment' || base === 'line2pt') {
+          const ref = straightRef(p1, byId, R);
+          if (ref) {
+            const X = R(o.parents[0]), A = ref.p1, B = ref.p2;
+            const proj = '((x(' + X + ')-x(' + A + '))*(x(' + B + ')-x(' + A + ')) + (y(' + X + ')-y(' + A + '))*(y(' + B + ')-y(' + A + ')))/'
+              + '((x(' + B + ')-x(' + A + '))^2 + (y(' + B + ')-y(' + A + '))^2)';
+            const tpl = base === 'segment' ? 'min(1, max(0, ' + proj + '))' : proj;
+            return { elem: 'numeric', exprTpl: tpl, args: [o.parents[0]].concat(ref.ids),
+              warn: 'point position mapped onto another straight (t94 projection)' };
+          }
+        }
+      }
       return skip('point-position measure: unsupported host');
     }
     case 'pointAtParam': {
