@@ -151,14 +151,22 @@ function mapObj(o, byLabel, lineByPair) {
       return { skip: 'rotate args' };
     }
     case 'dilate': {
+      // Dilate(pre, ratio, center).  The ratio may be a literal, Length(s1)/Length(s2),
+      // or a measured value (a numeric reference / expression).
+      const pre = A2[0], center = A2[2];
+      const ratioArg = String(def.args[1] || '');
+      if (!pre || !center) return { skip: 'dilate args' };
       // Dilate(pre, Length(s1)/Length(s2), center)  ->  Dilation2S (t31)
-      const dm = /^\s*length\s*\(([^)]*)\)\s*\/\s*length\s*\(([^)]*)\)\s*$/i.exec(String(def.args[1] || ''));
-      if (dm && P.length >= 2) {
+      const dm = /^\s*length\s*\(([^)]*)\)\s*\/\s*length\s*\(([^)]*)\)\s*$/i.exec(ratioArg);
+      if (dm) {
         const s1 = A(dm[1].trim()), s2 = A(dm[2].trim());
-        if (s1 && s2) return { t: 31, parents: [P[0], P[1], s1.id, s2.id] };
+        if (s1 && s2) return { t: 31, parents: [pre.id, center.id, s1.id, s2.id] };
       }
-      const k = parseFloat(def.args[1]);
-      if (P.length >= 2 && isFinite(k)) return { t: 30, parents: [P[0], P[1]], params: [k] };
+      const k = parseFloat(ratioArg);
+      if (isFinite(k)) return { t: 30, parents: [pre.id, center.id], params: [k] };
+      // Dilate(pre, <measured value>, center)  ->  DilationMR (t33)
+      const kRef = A(def.args[1]);
+      if (kRef) return { t: 33, parents: [pre.id, center.id, kRef.id] };
       return { skip: 'dilate args' };
     }
     case 'reflect': {
