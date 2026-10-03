@@ -72,7 +72,8 @@ function toGsp(c) {                 // ggb -> gsp logical (y-down)
 // ---------- kind classification ----------
 const POINT_KINDS = new Set(['free', 'midpoint', 'pointOnPath', 'intersectLL',
   'intersectLC1', 'intersectLC2', 'intersectCC1', 'intersectCC2', 'foot', 'offsetPoint',
-  'unitX', 'squareUnitY', 'rectUnitY', 'rotateImage', 'dilateImage', 'translateImage', 'plotPoint', 'plotXY']);
+  'unitX', 'squareUnitY', 'rectUnitY', 'rotateImage', 'dilateImage', 'translateImage', 'plotPoint', 'plotXY',
+  'pointAtParam']);
 const LINE_KINDS = new Set(['line2pt', 'perpLine', 'parallelLine', 'angleBisector', 'axis']);
 const SEG_KINDS = new Set(['segment']);
 const XFORM_KINDS = new Set(['translateImage', 'rotateImage', 'dilateImage', 'reflectImage',
@@ -954,6 +955,13 @@ function planOf(o, byId) {
         }
         return skip('point on function plot without decodable function/domain');
       }
+      // arc / locus paths: the object is itself a Path in GeoGebra, so keep the point
+      // constrained to it.  The stored parameter lives in GSP's own arc/locus frame
+      // (which does not match GeoGebra's), so leave the initial position to GeoGebra —
+      // the same policy as a one-parameter circle point.
+      if (path && (path.kind === 'arc' || path.kind === 'arcCenter' || path.kind === 'arc3Points' || path.kind === 'locus'))
+        return { elem: 'point', exprTpl: 'Point(' + R(path.id) + ')', args: [path.id],
+          warn: 'point on ' + path.kind + ': initial position left to GeoGebra' };
       return skip('point on unsupported path (falls back nowhere)');
     }
     case 'translateImage':

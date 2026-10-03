@@ -152,6 +152,13 @@
   3. 全树复测：**`emitted 228234 → 236087`（rate 56.06% → 57.99%，+7,853）**；
      `t15` 发射 10,858→11,668、`point on unsupported path` 4,641→3,853，其余为级联。
      `node test/smoke.js` 新增 1 条断言。
+- ✅ **本机续作（2026-10-03，第十三轮）：`pointOnPath` 支持弧/轨迹路径；`t95` 计入点类。**
+  （本机语料 `D:\Sketchpad5` = **1430 文件**，与上文 `1478 文件` 基线不可直接相减。）
+  1. `t15` 的路径此前只支持 线段/直线/多边形/圆/变换像/函数图；**本轮新增弧（`t79`/`t80`/`t81`）与
+     轨迹（`t35`）** 路径：发 `Point(路径)`（初始位置交给 GeoGebra——GSP 的弧/轨迹参数系与 GeoGebra
+     不同，与“单参数圆上点”同一策略）。`point on unsupported path` 3732 → 2721。
+  2. `t95`（`pointAtParam`）此前未计入点类，补入 `POINT_KINDS`。
+  3. 本机覆盖率 **59.44% → 61.21%**（237,867 → **244,915**，+7,048）。真机 GeoGebra 打开 `ok=True err=False`。
 - ✅ **本机续作（2026-10-03，第九轮）：定性并落地 `t24` = 定角 + 标记距离平移（`FixedAngleMarkedDistance`）。**
   1. 用户按 `ref-ctrl/jsp-samples/README-真值草图-t24.md` 制作了 4 对控制草图；其中
      `translate_fixedangle0/90_markeddist.gsp+.htm` 显示 `.htm` 为
