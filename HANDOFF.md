@@ -152,6 +152,18 @@
   3. 全树复测：**`emitted 228234 → 236087`（rate 56.06% → 57.99%，+7,853）**；
      `t15` 发射 10,858→11,668、`point on unsupported path` 4,641→3,853，其余为级联。
      `node test/smoke.js` 新增 1 条断言。
+- ✅ **本机续作（2026-10-03，第三十轮）：反向转换增强（第一批）。**
+  1. 现状测量：对 `gsp→ggb→gsp` 往返（每 10 个取 1、150 文件）反向仅 **33.1%**（14,155/42,760）。
+     根因：`translate args` 2777、`cmd Point` 1067、`unparsed expression` 7908、`line args` 425 等。
+  2. `ir2gsp.mapObj` 新增：
+     - `Translate(pre, Vector((dx,dy)))` → **t21 极坐标平移**（由 GGB 向量反算 d1/θ：`ddx=gx*50, ddy=-gy*50`）；
+     - `Translate(pre, (k)*Vector((cx,cy)))` → **t24 定角+标记距离平移**；
+     - `Point(path)`／`Point(path,t)` → **t15 路径点**／**t95 按参数取点**（`[值, 路径]`）。
+  3. 往返反向 **33.1% → 58.1%**（14,155 → 24,862），且**全部 143 个输出都能被本机读取器重新解析**
+     （`reparse-ok=143 badParse=0`）。`smoke` 通过。
+  4. 仍待做：`unparsed expression` 7908（多为文本）、`depends on skipped` 6417、`free button` 1328、
+     `line args` 425、`dilate args` 267、`cmd Sequence/IterationList/Arc/Locus/PathParameter`、
+     横/纵坐标与坐标距离表达式。
 - ✅ **本机续作（2026-10-03，第二十九轮）：宏展开——`t101/t102`（自定义变换的像）落地。**
   1. 真值：用户用本机 GSP5 做的最小例 `ct_tf_min.gsp`（A 为心把 B 逆时针转 90°→B'，选 A、B' 创建自定义变换，
      作用到自由点 P），并报告了 `A/B/B'/P/P'` 的坐标。反推得规则：**`T(X)` ＝ 把原型 `P'` 的构造里的定义点

@@ -90,12 +90,43 @@ function mapObj(o, byLabel, lineByPair) {
       return { skip: 'intersect args' };
     }
     case 'translate': {
-      const vm = /vector\s*\(([^)]*)\)/i.exec(String(def.args[1] || ''));
+      const arg1 = String(def.args[1] || '');
+      const vm = /vector\s*\(([^)]*)\)/i.exec(arg1);
       if (P.length >= 1 && vm) {
         const vp = vm[1].split(',').map(s => A(s.trim())).filter(Boolean).map(x => x.id);
         if (vp.length === 2) return { t: 16, parents: [P[0], vp[0], vp[1]] };
+        // Numeric vector: Vector((gx,gy))  -> PolarTranslation (t21) by a fixed vector.
+        const nm = /^\s*\(?\s*([-\d.eE+]+)\s*,\s*([-\d.eE+]+)\s*\)?\s*$/.exec(vm[1]);
+        if (nm) {
+          const gx = parseFloat(nm[1]), gy = parseFloat(nm[2]);
+          const ddx = gx * 50, ddy = -gy * 50;      // GGB units -> GSP file (sketch-pixel) units
+          const d1 = Math.hypot(ddx, ddy);
+          if (d1 > 0)
+            return { t: 21, parents: [P[0]],
+              params: [ddy / d1, ddx / d1, Math.atan2(ddx, -ddy), 0, d1] };
+        }
+      }
+      // (k)*Vector((cx,cy))  -> FixedAngleMarkedDistance (t24)
+      const km = /^\s*\(?([^)]*?)\)?\s*\*\s*vector\s*\(\s*\(?\s*([-\d.eE+]+)\s*,\s*([-\d.eE+]+)\s*\)?\s*\)/i.exec(arg1);
+      if (km && P.length >= 1) {
+        const kObj = A(km[1].trim());
+        const cx = parseFloat(km[2]), cy = parseFloat(km[3]);
+        if (kObj && isFinite(cx) && isFinite(cy))
+          return { t: 24, parents: [P[0], kObj.id],
+            params: [cy, cx] };
       }
       return { skip: 'translate args' };
+    }
+    case 'point': {
+      // Point(path) / Point(path, t): the GSP point-on-object family.
+      const path = A(def.args[0]);
+      if (!path) return { skip: 'point path unresolved' };
+      if (def.args.length === 1) return { t: 15, parents: [path.id] };
+      const vObj = A(def.args[1]);
+      if (vObj) return { t: 95, parents: [vObj.id, path.id] };   // [value, path]
+      const tv = parseFloat(String(def.args[1]).replace('\u00B0', '').replace('°', ''));
+      if (isFinite(tv)) return { t: 15, parents: [path.id], params: [tv] };
+      return { skip: 'point parameter unresolved' };
     }
     case 'rotate': {
       // Rotate(pre, Angle(A,B,C), center)  ->  MarkedAngleRotation (t28)
