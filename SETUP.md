@@ -178,6 +178,9 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
 | `polygon_reflections.gsp` 等 12 个控制草图 | 反射 / 旋转 / 位似 / 多边形 | 12/12 转换成功 |
 
 `.ggb → .gsp`：生成的 `.gsp` 在真实几何画板 5.06 打开并渲染；`polygon_reflections` 往返后 37 个对象（含 21 条反射）全部还原。
+**往返覆盖率**（`gsp→ggb→gsp`，抽样 150 文件）：反向发出 **28,569 / 42,760 = 66.8%**（每次改动后跑
+`node -e` 探针核对；输出 143/143 可被本机读取器重新解析，即结构自洽）。仍跳过：数值测量表达式（横/纵坐标、
+比值、坐标距离、plotXY）、文本、按钮、坐标轴线，以及 `Sequence/IterationList/Arc/Locus/PathParameter` 等。
 
 已知限制见 `Tech_Details.md` 的 **已知限制**；主要跳过项：`t77/t89/t88/t90/t75/t32` 等迭代/列表/自定义工具类、
 `point on unsupported path`、`t62` 中目标被上游跳过/源目标不明的移动按钮与数字目标动画按钮、

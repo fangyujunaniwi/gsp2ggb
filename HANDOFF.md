@@ -152,18 +152,21 @@
   3. 全树复测：**`emitted 228234 → 236087`（rate 56.06% → 57.99%，+7,853）**；
      `t15` 发射 10,858→11,668、`point on unsupported path` 4,641→3,853，其余为级联。
      `node test/smoke.js` 新增 1 条断言。
-- ✅ **本机续作（2026-10-03，第三十轮）：反向转换增强（第一批）。**
-  1. 现状测量：对 `gsp→ggb→gsp` 往返（每 10 个取 1、150 文件）反向仅 **33.1%**（14,155/42,760）。
-     根因：`translate args` 2777、`cmd Point` 1067、`unparsed expression` 7908、`line args` 425 等。
+- ✅ **本机续作（2026-10-03，第三十轮）：反向转换增强。**
+  1. 现状：对 `gsp→ggb→gsp` 往返（150 文件）反向仅 **33.1%**（14,155/42,760）。根因：`translate args` 2777、
+     `cmd Point` 1067、`unparsed expression` 7908、`(P)+(dx,dy)` 偏移点等。
   2. `ir2gsp.mapObj` 新增：
-     - `Translate(pre, Vector((dx,dy)))` → **t21 极坐标平移**（由 GGB 向量反算 d1/θ：`ddx=gx*50, ddy=-gy*50`）；
+     - `Translate(pre, Vector((dx,dy)))` → **t21 极坐标平移**（反算 `ddx=gx*50, ddy=-gy*50`）；
      - `Translate(pre, (k)*Vector((cx,cy)))` → **t24 定角+标记距离平移**；
-     - `Point(path)`／`Point(path,t)` → **t15 路径点**／**t95 按参数取点**（`[值, 路径]`）。
-  3. 往返反向 **33.1% → 58.1%**（14,155 → 24,862），且**全部 143 个输出都能被本机读取器重新解析**
-     （`reparse-ok=143 badParse=0`）。`smoke` 通过。
-  4. 仍待做：`unparsed expression` 7908（多为文本）、`depends on skipped` 6417、`free button` 1328、
-     `line args` 425、`dilate args` 267、`cmd Sequence/IterationList/Arc/Locus/PathParameter`、
-     横/纵坐标与坐标距离表达式。
+     - `Point(path)`／`Point(path,t)` → **t15 路径点**／**t95 按参数取点**（`[值, 路径]`）；
+     - `(P)+(dx,dy)` → **t17 固定偏移点**（`gy==0`→t52 单位点、`gx==0`→t55 纵单位点）；
+     - `Dilate(pre, <测量值>, center)` → **t33 DilationMR**。
+  3. 往返反向 **33.1% → 66.8%**（14,155 → 28,569），**143/143 输出可被本机读取器重新解析**（`badParse=0`）。
+     `smoke` 通过。提交 `8cfdb8c`/`e2c…`。
+  4. 仍待做：`unparsed expression` 7018（多为数值测量：横/纵坐标 559、比值、坐标距离、plotXY；及文本 842）、
+     `depends on skipped` 3657、`free button` 1328、`line args` 425（坐标轴线 `Line(O,O+(1,0))`）、
+     `cmd Sequence/IterationList/Arc/Locus/PathParameter`（迭代/弧/轨迹）。
+- ✅ **本机续作（2026-10-03，第二十九轮）：宏展开——`t101/t102`（自定义变换的像）落地。**
 - ✅ **本机续作（2026-10-03，第二十九轮）：宏展开——`t101/t102`（自定义变换的像）落地。**
   1. 真值：用户用本机 GSP5 做的最小例 `ct_tf_min.gsp`（A 为心把 B 逆时针转 90°→B'，选 A、B' 创建自定义变换，
      作用到自由点 P），并报告了 `A/B/B'/P/P'` 的坐标。反推得规则：**`T(X)` ＝ 把原型 `P'` 的构造里的定义点
