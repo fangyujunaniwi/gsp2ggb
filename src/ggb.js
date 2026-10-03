@@ -954,6 +954,14 @@ function planOf(o, byId) {
             warn: 'point on segment without a stored parameter (position left to GeoGebra)' };
         }
         if (t !== null) {
+          // Free point on the line: seed the position with <coords> and let GeoGebra keep it
+          // constrained to (and draggable along) the line — GSP's φ is relative to a
+          // reference pair that need not be the path's own defining points, so the stored
+          // parameter is only used as a fallback when the position cannot be computed.
+          const xy = gspPosXY(o, byId, 0);
+          if (xy) return { elem: 'point', exprTpl: 'Point(' + R(path.id) + ')',
+            args: [path.id], pathXY: toPt(xy),
+            warn: 'point on ' + path.kind + ' as free-on-path point' };
           const ref = straightRef(path, byId, R);
           if (ref) return { elem: 'point',
             exprTpl: '(' + ref.p1 + ') + ' + fmt(t) + ' * ((' + ref.p2 + ') - (' + ref.p1 + '))',
