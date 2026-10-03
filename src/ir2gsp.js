@@ -55,10 +55,18 @@ function mapObj(o, byLabel, lineByPair) {
     if (m) { const p = ids([m[1], m[2]]); return p.length === 2 ? { t: 65, parents: p } : { skip: 'dx refs' }; }
     m = /^\s*y\(([^)]+)\)\s*-\s*y\(([^)]+)\)\s*$/.exec(e);
     if (m) { const p = ids([m[1], m[2]]); return p.length === 2 ? { t: 66, parents: p } : { skip: 'dy refs' }; }
-    m = /^\s*\(?([\w]+)\)?\s*\+\s*\(\s*([-\d.eE+]+)\s*,\s*0\s*\)\s*$/.exec(e);
-    if (m) { const p = ids([m[1]]); return p.length === 1 ? { t: 52, parents: p, params: [+m[2] * 50] } : { skip: 'shiftX ref' }; }
-    m = /^\s*\(?([\w]+)\)?\s*\+\s*\(\s*0\s*,\s*([-\d.eE+]+)\s*\)\s*$/.exec(e);
-    if (m) { const p = ids([m[1]]); return p.length === 1 ? { t: 55, parents: p, params: [-m[2] * 50] } : { skip: 'shiftY ref' }; }
+    m = /^\s*\(?([\w]+)\)?\s*\+\s*\(\s*([-\d.eE+]+)\s*,\s*([-\d.eE+]+)\s*\)\s*$/.exec(e);
+    if (m) {
+      const p = ids([m[1]]);
+      if (p.length === 1) {
+        const gx = parseFloat(m[2]), gy = parseFloat(m[3]);
+        // (origin)+(dx,0) -> SimpleUnitPoint (t52); (origin)+(0,dy) -> unitY (t55);
+        // otherwise a fixed-offset point (t17).
+        if (gy === 0) return { t: 52, parents: p, params: [gx * 50] };
+        if (gx === 0) return { t: 55, parents: p, params: [gy * 50] };
+        return { t: 17, parents: p, params: [gx * 50, -gy * 50] };
+      }
+    }
     if (o.coords) return { t: 0, coords: o.coords, rich: false };
     return { skip: 'unparsed expression' };
   }
