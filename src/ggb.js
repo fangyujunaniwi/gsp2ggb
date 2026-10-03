@@ -866,8 +866,8 @@ function planOf(o, byId) {
     case 'pointOnPath': {
       if (P.length < 1) return skip('point-on-path needs parent');
       const path = P[0], t = (o.params && o.params.length) ? o.params[0] : null;
-      // straight of any kind (segment/line/perp/parallel/bisector): exact reference pair
-      if (path && t !== null && (SEG_KINDS.has(path.kind) || LINE_KINDS.has(path.kind))) {
+      // straight of any kind (segment/line/perp/parallel/bisector)
+      if (path && (SEG_KINDS.has(path.kind) || LINE_KINDS.has(path.kind))) {
         // A point on a *segment* carries the segment's own fraction, so emit it as a real
         // path point: GeoGebra then keeps it constrained to (and animatable along) the
         // segment.  For lines / derived straights GSP's φ is relative to a reference pair
@@ -877,18 +877,26 @@ function planOf(o, byId) {
           // path point stays changeable, so an animate button can act on it (see
           // gspPosXY).  Keep the parameterised form only when the position is
           // unknown — geometry stays exact, it just cannot be animated.
-          const xy = gspPosXY(o, byId, 0);
+          const xy = (t !== null) ? gspPosXY(o, byId, 0) : null;
           if (xy) return { elem: 'point', exprTpl: 'Point(' + R(path.id) + ')',
             args: [path.id], pathXY: toPt(xy) };
-          return { elem: 'point', exprTpl: 'Point(' + R(path.id) + ',' + fmt(t) + ')',
+          if (t !== null) return { elem: 'point', exprTpl: 'Point(' + R(path.id) + ',' + fmt(t) + ')',
             args: [path.id], noAnim: true, warn: 'point on segment: position not computable, kept fixed' };
+          // No stored parameter at all: keep the point on the segment and leave the
+          // initial position to GeoGebra (same policy as a one-parameter circle point).
+          return { elem: 'point', exprTpl: 'Point(' + R(path.id) + ')', args: [path.id],
+            warn: 'point on segment without a stored parameter (position left to GeoGebra)' };
         }
-        const ref = straightRef(path, byId, R);
-        if (ref) return { elem: 'point',
-          exprTpl: '(' + ref.p1 + ') + ' + fmt(t) + ' * ((' + ref.p2 + ') - (' + ref.p1 + '))',
-          args: [path.id].concat(ref.ids),
-          warn: (path.kind === 'perpLine' || path.kind === 'parallelLine' || path.kind === 'angleBisector')
-            ? 'point on ' + path.kind + ' via GSP reference parameter' : undefined };
+        if (t !== null) {
+          const ref = straightRef(path, byId, R);
+          if (ref) return { elem: 'point',
+            exprTpl: '(' + ref.p1 + ') + ' + fmt(t) + ' * ((' + ref.p2 + ') - (' + ref.p1 + '))',
+            args: [path.id].concat(ref.ids),
+            warn: (path.kind === 'perpLine' || path.kind === 'parallelLine' || path.kind === 'angleBisector')
+              ? 'point on ' + path.kind + ' via GSP reference parameter' : undefined };
+        }
+        return { elem: 'point', exprTpl: 'Point(' + R(path.id) + ')', args: [path.id],
+          warn: 'point on line without a stored parameter (position left to GeoGebra)' };
       }
       // polygon boundary: GSP stores offset = edgeIndex + φ (gPolygon.mapOffsetToPoint);
       // GeoGebra's polygon path parameter is (edgeIndex + φ)/n, n = vertex count.
@@ -902,25 +910,24 @@ function planOf(o, byId) {
       // transformed path: affine images preserve the fraction φ (segments) and
       // the offset (polygons), and GeoGebra's Point(path, t) uses the same segment
       // fraction / polygon (offset/n) parameter.
-      if (path && t !== null && XFORM_KINDS.has(path.kind)) {
+      if (path && XFORM_KINDS.has(path.kind)) {
         let cur = path, g = 0;
         while (cur && XFORM_KINDS.has(cur.kind) && g++ < 16) cur = byId.get(cur.parents[0]);
-        if (cur && cur.kind === 'segment') {
+        if (cur && cur.kind === 'segment' && t !== null) {
           return { elem: 'point', exprTpl: 'Point(' + R(path.id) + ',' + fmt(t) + ')',
             args: [path.id], noAnim: true, warn: 'point on transformed segment via path parameter' };
         }
-        if (cur && cur.kind === 'polygon' && cur.parents.length >= 3) {
+        if (cur && cur.kind === 'polygon' && t !== null && cur.parents.length >= 3) {
           return { elem: 'point', exprTpl: 'Point(' + R(path.id) + ',' + fmt(t / cur.parents.length) + ')',
             args: [path.id], noAnim: true, warn: 'point on transformed polygon (offset/n)' };
         }
-        // transformed circle: the base is a circle, so the image is still a conic and
-        // GeoGebra accepts Point(<conic>).  Keep the point constrained to (and animatable
-        // along) the transformed circle; the initial position is left to GeoGebra — the
-        // stored parameter lives in the *base* circle's frame, so deriving <coords> here
-        // would require composing the transform.  (Same policy as a one-parameter circle.)
-        if (cur && CIRC_KINDS.has(cur.kind) && cur.parents.length === 2) {
+        // transformed circle / straight / polygon without a usable parameter: the image is
+        // still the same kind of path, so keep the point on it and leave the initial
+        // position to GeoGebra (same policy as a one-parameter circle point).
+        if (cur && (CIRC_KINDS.has(cur.kind) || SEG_KINDS.has(cur.kind) || LINE_KINDS.has(cur.kind) ||
+            (cur.kind === 'polygon' && cur.parents.length >= 3))) {
           return { elem: 'point', exprTpl: 'Point(' + R(path.id) + ')', args: [path.id],
-            warn: 'point on transformed circle: initial position left to GeoGebra' };
+            warn: 'point on transformed ' + cur.kind + ': initial position left to GeoGebra' };
         }
       }
       // circle path: the two-parameter form is a unit direction (cos,sin) in a y-up frame
