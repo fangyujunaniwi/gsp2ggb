@@ -535,40 +535,59 @@ function plotDomain(o) {
 // Scalar (origin, unit) of one coordinate axis, as GeoGebra expressions.
 // Axis4 (origin point + unit point) → origin = x/y(point), unit = px/SCALE.
 // Axis3 (parent coordinate system)  → inherit from that coordinate system.
-function axisScaleRef(o, byId, R) {
+function axisScaleRef(o, byId, R, depth) {
+  if (!o || (depth || 0) > 8) return null;
   const P = o.parents.map(i => byId.get(i));
   const horiz = axisHorizontal(o);
   if (P.length >= 2 && isPointish(P[0])) {
     const up = P[1];
+    const origin = (horiz ? 'x(' : 'y(') + R(o.parents[0]) + ')';
+    const ids = o.parents[0] != null ? [o.parents[0]] : [];
     const s = unitScaleOf(up, byId, 0);
-    if (s != null)
-      return { origin: (horiz ? 'x(' : 'y(') + R(o.parents[0]) + ')', unit: fmt(s / SCALE) };
-    return null;                                   // unit defined by a measurement/text: unknown
+    if (s != null) return { origin, unit: fmt(s / SCALE), ids };
+    // Unit defined by a numeric measurement (t48/t37/...): reference the emitted numeric.
+    // Its GeoGebra value is already in output units, so the coordinate readout matches
+    // the sketch (verified on cs#129 of Sample.gsp: unit Parameter "单位点" = 1, and the
+    // circle Circle(O,"R"=4) crosses the x-axis at ±4 units).
+    if (up && (NUM_KINDS.has(up.kind) || up.kind === 'text' || (up.kind === 'free' && !up.coords)))
+      return { origin, unit: R(o.parents[1]), ids: ids.concat([o.parents[1]]) };
+    // t56: the axis' unit is inherited from another axis (its parent).
+    if (up && up.srcType === 56 && up.parents && up.parents.length) {
+      const pa = byId.get(up.parents[0]);
+      if (pa && pa.kind === 'axis') {
+        const ref = axisScaleRef(pa, byId, R, (depth || 0) + 1);
+        if (ref) return { origin, unit: ref.unit, ids: ids.concat(ref.ids || []) };
+      }
+    }
+    return null;                                   // unit defined by an unsupported object
   }
   if (P.length === 1) {
     const cs = coordSysRef(P[0], byId, R);
-    if (cs) return { origin: horiz ? cs.ox : cs.oy, unit: horiz ? cs.ux : cs.uy };
+    if (cs) return { origin: horiz ? cs.ox : cs.oy, unit: horiz ? cs.ux : cs.uy, ids: cs.ids };
   }
   return null;
 }
 
-// Origin/unit of a gCoordSys (t61), as GeoGebra expressions, or null.
+// Origin/unit of a gCoordSys (t61), as GeoGebra expressions, or null.  `ids` lists every
+// object the expressions reference, so callers can add them to their plan's args (and thus
+// cascade correctly when one of them is skipped).
 function coordSysRef(o, byId, R) {
   if (!o) return null;
   const P = o.parents.map(i => byId.get(i));
   if (P.length === 2 && P[0] && P[1] && P[0].kind === 'axis' && P[1].kind === 'axis') {
     const ax = axisScaleRef(P[0], byId, R), ay = axisScaleRef(P[1], byId, R);
-    if (ax && ay) return { ox: ax.origin, ux: ax.unit, oy: ay.origin, uy: ay.unit };
+    if (ax && ay) return { ox: ax.origin, ux: ax.unit, oy: ay.origin, uy: ay.unit,
+      ids: [...new Set([].concat(ax.ids || [], ay.ids || []))] };
     return null;
   }
   if (P.length === 2 && isPointish(P[0]) && isPointish(P[1])) {
     const d = 'Distance(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ')';
-    return { ox: 'x(' + R(o.parents[0]) + ')', oy: 'y(' + R(o.parents[0]) + ')', ux: d, uy: d };
+    return { ox: 'x(' + R(o.parents[0]) + ')', oy: 'y(' + R(o.parents[0]) + ')', ux: d, uy: d, ids: o.parents.slice() };
   }
   if (P.length === 1 && P[0] && CIRC_KINDS.has(P[0].kind) && P[0].parents.length >= 2) {
     const cen = P[0].parents[0], on = P[0].parents[1];
     const rad = 'Distance(' + R(cen) + ',' + R(on) + ')';
-    return { ox: 'x(' + R(cen) + ')', oy: 'y(' + R(cen) + ')', ux: rad, uy: rad };
+    return { ox: 'x(' + R(cen) + ')', oy: 'y(' + R(cen) + ')', ux: rad, uy: rad, ids: [cen, on] };
   }
   return null;
 }

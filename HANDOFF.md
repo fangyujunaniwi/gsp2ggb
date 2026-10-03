@@ -152,6 +152,15 @@
   3. 全树复测：**`emitted 228234 → 236087`（rate 56.06% → 57.99%，+7,853）**；
      `t15` 发射 10,858→11,668、`point on unsupported path` 4,641→3,853，其余为级联。
      `node test/smoke.js` 新增 1 条断言。
+- ✅ **本机续作（2026-10-03，第二十三轮）：坐标系解析支持“轴单位＝数值测量”。**
+  1. 此前 `axisScaleRef` 只认单位点（`unitX`/`squareUnitY`/`rectUnitY`）；当轴的单位是一个**数值测量**
+     （`t48` 计算 / `t37` 距离 / 参数…，例：`Sample.gsp` cs#129 的单位参数「单位点」=1）时返回 null，
+     连带 `plot point / abscissa / ordinate / plotXY / coordinate distance / coordPair` 成片跳过。
+     现改为**引用该数值对象**（`unit = {#id}`；其 GeoGebra 值已按输出单位发出，读数与画板一致——
+     自洽校验：`Circle(O,"R"=4)` 与 x 轴交点应在 ±4 单位）。
+  2. 另支持 **`t56`**：某轴的单位继承自另一条轴（y 轴单位 `t56` → 其父 x 轴的单位）。
+  3. `plot point: coordinate system not computable` 560 → 0；覆盖率 **64.40% → 67.58%**
+     （257,680 → **270,411**，+12,731）。真机 GeoGebra 打开 `太极图整体轨迹(一线天)` 等 `ok=True err=False`。
 - ✅ **本机续作（2026-10-03，第二十二轮）：`t95`（路径上按参数取点）放开到非线段路径。**
   1. 此前 `t95` 只在“一条父是线段”时发 `Point(线段, 值)`；本轮放开到 **多边形/圆/弧/轨迹/直线**：
      发 `Point(路径, 值)`（对象在 GeoGebra 中仍是 Path，点保持在其上；沿路径的初始位置可能不同——
