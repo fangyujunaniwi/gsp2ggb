@@ -160,7 +160,8 @@
      - `Translate(pre, (k)*Vector((cx,cy)))` → **t24 定角+标记距离平移**；
      - `Point(path)`／`Point(path,t)` → **t15 路径点**／**t95 按参数取点**（`[值, 路径]`）；
      - `(P)+(dx,dy)` → **t17 固定偏移点**（`gy==0`→t52 单位点、`gx==0`→t55 纵单位点）；
-     - `Dilate(pre, <测量值>, center)` → **t33 DilationMR**。
+     - `Dilate(pre, <测量值>, center)` → **t33 DilationMR**；
+     - `Area/Perimeter/Circumference/Radius` → **t42/t39/t40/t46**。
   3. 往返反向 **33.1% → 66.8%**（14,155 → 28,569），**143/143 输出可被本机读取器重新解析**（`badParse=0`）。
      `smoke` 通过。提交 `8cfdb8c`/`e2c…`。
   4. 仍待做：`unparsed expression` 7018（多为数值测量：横/纵坐标 559、比值、坐标距离、plotXY；及文本 842）、

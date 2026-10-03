@@ -177,6 +177,10 @@ function mapObj(o, byLabel, lineByPair) {
       return { t: 34, parents: [P[0], mir] };
     }
     case 'foot': return { skip: 'perpendicular foot has no verified GSP object type' };
+    case 'area': return P.length === 1 ? { t: 42, parents: P } : { skip: 'area args' };
+    case 'perimeter': return P.length === 1 ? { t: 39, parents: P } : { skip: 'perimeter args' };
+    case 'circumference': return P.length === 1 ? { t: 40, parents: P } : { skip: 'circumference args' };
+    case 'radius': return P.length === 1 ? { t: 46, parents: P } : { skip: 'radius args' };
     case 'distance': return P.length === 2 ? { t: 37, parents: P } : { skip: 'distance args' };
     case 'length': return P.length === 1 ? { t: 36, parents: P } : { skip: 'length args' };
     case 'slope': return P.length === 1 ? { t: 87, parents: P } : { skip: 'slope args' };
