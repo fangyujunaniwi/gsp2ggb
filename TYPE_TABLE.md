@@ -41,7 +41,7 @@
 | t30 | 10126 | 位似像 `Dilation`（固定比，参数存比值） | JSP/反编译 | ✅ |
 | t31 | 8 | 双段比位似像 `Dilation/SegmentRatio` | JSP | ✅ |
 | t32 | 3571 | **宏实例＝工具文件夹工具调用**（恒 5 父，引用该工具构造的输入/中间对象；定义不在使用文件内） | 真值草图 | ❌(宏) |
-| t33 | 12177 | 标记比位似像 `Dilation/MarkedRatio` | JSP/反编译 | ⏳ |
+| t33 | 12177 | 标记比位似像 `DilationMR`（pre+center+比例）；跳过多为**上游级联**或标记非数值 | JSP/反编译 | ✅* |
 | t34 | 6899 | 反射像 `Reflection`（镜=线/线段/点/圆） | JSP/反编译 | ✅ |
 | t35 | 3114 | 轨迹 `Locus`（Sampler/gPointLocus） | 反编译 | ⏳ |
 | t36 | 1058 | 测量：线段长（measureType 1） | 反编译 | ✅ |
