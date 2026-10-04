@@ -1470,6 +1470,19 @@ function planOf(o, byId) {
     case 'customXformPt':      // t101 = custom-transformation image of a point
     case 'customXform':        // t102 = same, for a non-point result
       return customXformPlan(o, byId);
+    case 'curveIntersect': {
+      // t98 = the intersection of a function graph with another path.  A t72 parent is the
+      // plot object (skipped, recreated by its function), so resolve it to the function.
+      if (P.length < 2) return skip('curve intersection needs two paths');
+      const resolve = id => {
+        const q = byId.get(id);
+        return (q && q.srcType === 72 && q.parents && q.parents.length) ? q.parents[0] : id;
+      };
+      const a = resolve(o.parents[0]), b = resolve(o.parents[1]);
+      const k = (byId.sibIndex && byId.sibIndex.get(o.id)) || 1;
+      return { elem: 'point', exprTpl: 'Intersect(' + R(a) + ',' + R(b) + ',' + k + ')',
+        args: [a, b], warn: 'intersection of a function graph with a path (t98)' };
+    }
     case 'ratioMeasure': {
       const r = ratioTemplate(o, byId);
       if (r) return { elem: 'numeric', exprTpl: r.tpl, args: r.ids };
@@ -1676,6 +1689,22 @@ function irToGgb(ir) {
   for (const o of ir.objects)
     if ((o.srcType === 58 || o.srcType === 59) && o.parents && o.parents.length)
       byId.fixedPoints.add(o.parents[0]);
+  // t98 intersections: among instances that share the same parent pair, the N-th one (by id)
+  // is the N-th intersection point (GeoGebra's Intersect(..., k) index).
+  byId.sibIndex = new Map();
+  {
+    const groups = new Map();
+    for (const o of ir.objects) {
+      if (o.srcType !== 98 || !o.parents || o.parents.length < 2) continue;
+      const key = [o.parents[0], o.parents[1]].sort((x, y) => x - y).join('_');
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(o.id);
+    }
+    for (const ids of groups.values()) {
+      ids.sort((a, b) => a - b);
+      ids.forEach((id, i) => byId.sibIndex.set(id, i + 1));
+    }
+  }
 
   // 1) plan every object
   const plans = new Map();
