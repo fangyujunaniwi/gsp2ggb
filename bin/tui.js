@@ -12,7 +12,7 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 const { spawn } = require('child_process');
-const { convertBuffer } = require('../src/convert.js');
+const { convertBuffer, convertManyToGsp } = require('../src/convert.js');
 const U = require('../src/tui-util.js');
 
 // --- colours -----------------------------------------------------------------
@@ -44,6 +44,7 @@ const state = {
 const MENU = [
   { key: 'file', label: () => '转换一个文件…' },
   { key: 'folder', label: () => '批量转换一个文件夹…' },
+  { key: 'merge', label: () => '合并文件夹内 .ggb → 多页 .gsp…' },
   { key: 'dir', label: () => '方向：' + U.directionLabel(state.to) },
   { key: 'out', label: () => '输出：' + (state.outMode === 'alongside' ? '源文件旁' : (state.outDir || '（未选择）')) },
   { key: 'report', label: () => '查看上次报告' + (state.results.length ? '（' + state.results.length + ' 个文件）' : '') },
@@ -98,7 +99,8 @@ function buildMenu(cols, rows) {
 
 function browseTitle(mode) {
   return mode === 'file' ? '选择一个 .gsp / .ggb 文件' :
-    mode === 'folder' ? '选择要批量转换的文件夹' : '选择输出文件夹';
+    mode === 'folder' ? '选择要批量转换的文件夹' :
+    mode === 'mergedir' ? '选择要合并的 .ggb 文件夹' : '选择输出文件夹';
 }
 
 function buildBrowse(cols, rows) {
@@ -137,11 +139,13 @@ function buildRunning(cols, rows) {
   const lines = header('转换中…', cols);
   lines.push('');
   const total = state.jobs.length;
-  lines.push('  ' + (state.jobs.length ? (state.jobIndex + 1) + ' / ' + total + '：' + U.truncate(path.basename(state.jobs[state.jobIndex].in), cols - 20) : ''));
+  const idx = Number.isInteger(state.jobIndex) && state.jobIndex >= 0 && state.jobIndex < total ? state.jobIndex : 0;
+  const cur = total ? state.jobs[idx] : null;
+  lines.push('  ' + (cur ? (idx + 1) + ' / ' + total + '：' + U.truncate(path.basename(cur.in), Math.max(1, cols - 20)) : ''));
   lines.push('');
   for (let i = 0; i < state.results.length && i < rows - 6; i++) {
     const r = state.results[i];
-    lines.push('  ' + (r.ok ? st('✓', 'green') : st('✗', 'red')) + ' ' + U.truncate(path.basename(r.in), cols - 6));
+    lines.push('  ' + (r.ok ? st('✓', 'green') : st('✗', 'red')) + ' ' + U.truncate(path.basename(r.in), Math.max(1, cols - 6)));
   }
   return lines;
 }
@@ -172,7 +176,9 @@ function buildReport(cols, rows, warningsOnly) {
     state.results.forEach(r => {
       const tag = r.ok ? st('  ✓ ', 'green') : st('  ✗ ', 'red');
       body.push(tag + U.truncate(path.basename(r.in), cols - 10) +
-        st('  ' + (r.dir || r.error || '') + (r.ok ? '  objects=' + r.objects + ' emitted=' + r.emitted : ''), 'dim'));
+        st('  ' + (r.dir || r.error || '') + (r.ok
+          ? '  objects=' + r.objects + ' emitted=' + r.emitted + (r.pages ? ' pages=' + r.pages : '')
+          : ''), 'dim'));
       r.warnings.slice(0, 3).forEach(w => body.push(st('      - ' + U.truncate(w, cols - 9), 'dim')));
       if (r.warnings.length > 3) body.push(st('      … +' + (r.warnings.length - 3) + ' 条', 'dim'));
     });
@@ -184,7 +190,10 @@ function buildReport(cols, rows, warningsOnly) {
   if (state.repScroll < 0) state.repScroll = 0;
   for (let i = 0; i < height; i++) lines.push(body[state.repScroll + i] || '');
   lines.push('');
-  lines.push(st(warningsOnly ? ' ↑↓/PgUp/PgDn 滚动   Esc 返回' : ' ↑↓/PgUp/PgDn 滚动   w 警告明细   o 打开输出目录   Esc 返回', 'dim'));
+  const shownTo = Math.min(body.length, state.repScroll + height);
+  const scrollInfo = body.length > height ? (' ' + (state.repScroll + 1) + '-' + shownTo + '/' + body.length + '   ') : ' ';
+  lines.push(st(scrollInfo + (warningsOnly ? '↑↓/PgUp/PgDn 滚动   Esc 返回'
+    : '↑↓/PgUp/PgDn 滚动   w 警告明细   o 打开输出目录   Esc 返回'), 'dim'));
   return lines;
 }
 
@@ -195,12 +204,13 @@ function buildHelp(cols, rows) {
     '',
     '  • 转换一个文件     选择 .gsp 或 .ggb，自动决定方向（可用「方向」强制）。',
     '  • 批量转换文件夹   目录内所有 .gsp/.ggb 一起转换；输出默认到 <目录>/converted。',
+    '  • 合并            把一个文件夹里的多个 .ggb 合成一个多页 .gsp（每文件一页）。',
     '  • 方向             自动 / GSP → GGB / GGB → GSP。',
-    '  • 输出             源文件旁，或自选一个输出目录。',
+    '  • 输出             源文件旁，或自选一个输出目录。多页 .gsp 会每页导出一个 .ggb（同名文件夹内）。',
     '',
-    '  文件浏览：↑↓ 移动、Enter 进入目录、Backspace 上一级；',
-    '            文件模式下 Enter 选择文件；文件夹/输出模式下 Space 选择当前目录。',
-    '  报告页：w 查看警告明细、o 在资源管理器中打开输出目录。',
+    '  文件浏览：↑↓ 移动、Home/End 首尾、Enter 进入目录、Backspace 上一级；',
+    '            文件模式下 Enter 选择文件；文件夹/合并/输出模式下 Space 选择当前目录。',
+    '  报告页：↑↓/PgUp/PgDn 滚动、w 查看警告明细、o 在资源管理器中打开输出目录。',
     '',
     '  非交互（管道/CI）时会退化为逐行编号菜单，同样可脚本化。',
     '  命令行等价用法见 bin/cli.js 或 README。',
@@ -248,12 +258,44 @@ function runOne(job) {
   try {
     const buf = fs.readFileSync(job.in);
     const r = convertBuffer(buf, path.extname(job.in).toLowerCase(), state.to === 'auto' ? undefined : state.to);
+    if (r.pages && r.pages.length > 1) {
+      // multi-page .gsp -> one .ggb per page, in a folder next to the source
+      const folder = job.out.replace(/\.(gsp|ggb)$/i, '');
+      fs.mkdirSync(folder, { recursive: true });
+      const used = new Set();
+      for (const p of r.pages) {
+        let base = String(p.name || 'page').replace(/[\\/:*?"<>|]/g, '_').trim() || 'page';
+        let nm = base;
+        for (let k = 2; used.has(nm); k++) nm = base + '_' + k;
+        used.add(nm);
+        fs.writeFileSync(path.join(folder, nm + '.ggb'), p.buf);
+      }
+      rec.ok = true; rec.dir = r.dir; rec.objects = r.total; rec.emitted = r.emitted;
+      rec.pages = r.pages.length; rec.outFolder = folder; rec.warnings = r.warnings;
+      return rec;
+    }
     fs.mkdirSync(path.dirname(job.out), { recursive: true });
     fs.writeFileSync(job.out, r.out);
     rec.ok = true; rec.dir = r.dir; rec.objects = r.total; rec.emitted = r.emitted; rec.warnings = r.warnings;
   } catch (e) {
     rec.error = e.message;
   }
+  return rec;
+}
+
+// Combine every .ggb in a folder into one multi-page .gsp (see cli.js --merge).
+function runMerge(inDir, outFile) {
+  const rec = { in: inDir, out: outFile, ok: false, error: null, dir: 'ggb → gsp（多页）', objects: 0, emitted: 0, warnings: [] };
+  try {
+    const names = fs.readdirSync(inDir).filter(f => /\.ggb$/i.test(f)).sort();
+    if (!names.length) throw new Error('该目录下没有 .ggb 文件');
+    const items = names.map(f => ({ buf: fs.readFileSync(path.join(inDir, f)), name: path.basename(f, path.extname(f)) }));
+    const r = convertManyToGsp(items);
+    fs.mkdirSync(path.dirname(outFile), { recursive: true });
+    fs.writeFileSync(outFile, r.out);
+    rec.ok = true; rec.objects = r.total; rec.emitted = r.emitted;
+    rec.pages = r.pages; rec.warnings = r.warnings;
+  } catch (e) { rec.error = e.message; }
   return rec;
 }
 
@@ -276,6 +318,14 @@ function startJobs(jobs) {
 
 function runSelection(sel) {
   state.message = '';
+  if (sel.kind === 'merge') {
+    const outDir = state.outMode === 'custom' && state.outDir ? state.outDir : path.dirname(sel.path);
+    const outFile = path.join(outDir, path.basename(sel.path) + '.gsp');
+    state.results = [runMerge(sel.path, outFile)];
+    state.repScroll = 0;
+    state.screen = 'report';
+    return render();
+  }
   startJobs(makeJobs(sel));
 }
 
@@ -308,6 +358,7 @@ function onMenuKey(name) {
     state.message = '';
     if (it.key === 'file') startBrowse('file');
     else if (it.key === 'folder') startBrowse('folder');
+    else if (it.key === 'merge') startBrowse('mergedir');
     else if (it.key === 'dir') state.to = U.nextDirection(state.to);
     else if (it.key === 'out') {
       if (state.outMode === 'alongside') { state.outMode = 'custom'; startBrowse('outdir'); }
@@ -324,9 +375,12 @@ function onBrowseKey(name) {
   if (name === 'escape' || name === 'q') { state.screen = 'menu'; return render(); }
   if (name === 'up' || name === 'k') { if (b.entries.length) b.index = (b.index - 1 + b.entries.length) % b.entries.length; return render(); }
   if (name === 'down' || name === 'j') { if (b.entries.length) b.index = (b.index + 1) % b.entries.length; return render(); }
+  if (name === 'home') { b.index = 0; return render(); }
+  if (name === 'end') { if (b.entries.length) b.index = b.entries.length - 1; return render(); }
   if (name === 'backspace') { loadDir(U.parentDir(b.dir)); return render(); }
   if (name === 'space' && b.mode !== 'file') {
     if (b.mode === 'folder') return runSelection({ kind: 'folder', path: b.dir });
+    if (b.mode === 'mergedir') return runSelection({ kind: 'merge', path: b.dir });
     state.outDir = b.dir; state.outMode = 'custom'; state.screen = 'menu'; return render();
   }
   if (name === 'return') {
@@ -345,6 +399,8 @@ function onReportKey(name) {
   if (name === 'escape') { state.screen = 'menu'; state.repScroll = 0; return render(); }
   if (name === 'up' || name === 'k') { state.repScroll--; return render(); }
   if (name === 'down' || name === 'j') { state.repScroll++; return render(); }
+  if (name === 'home') { state.repScroll = 0; return render(); }
+  if (name === 'end') { state.repScroll = 1e9; return render(); }
   if (name === 'pageup') { state.repScroll -= 10; return render(); }
   if (name === 'pagedown') { state.repScroll += 10; return render(); }
   if (name === 'w') { state.screen = state.screen === 'warnings' ? 'report' : 'warnings'; state.repScroll = 0; return render(); }
@@ -396,12 +452,25 @@ function lineMode() {
       console.log('  3) 切换方向');
       console.log('  4) 设置输出目录');
       console.log('  5) 查看上次报告');
+      console.log('  6) 合并 .ggb 文件夹 → 多页 .gsp');
       console.log('  0) 退出');
       const c = await ask('选择> ');
       if (c === null || c === '0' || c === 'q' || c === '') break;
       if (c === '3') { state.to = U.nextDirection(state.to); continue; }
       if (c === '4') { const d = await ask('输出目录> '); if (d === null) break; state.outDir = d; state.outMode = d ? 'custom' : 'alongside'; continue; }
       if (c === '5') { printReport(); continue; }
+      if (c === '6') {
+        const d = await ask('含 .ggb 的文件夹> ');
+        if (d === null) break;
+        if (!d || !fs.existsSync(d)) { console.log('路径不存在：' + d); continue; }
+        const outDir = state.outMode === 'custom' && state.outDir ? state.outDir : path.dirname(d);
+        const outFile = path.join(outDir, path.basename(d) + '.gsp');
+        const rec = runMerge(d, outFile);
+        state.results = [rec];
+        console.log((rec.ok ? '  ok   ' : '  FAIL ') + path.basename(d) + ' -> ' + outFile +
+          (rec.ok ? ' pages=' + rec.pages + ' emitted=' + rec.emitted : ': ' + rec.error));
+        continue;
+      }
       if (c === '1' || c === '2') {
         const p = await ask(c === '1' ? '文件路径> ' : '文件夹路径> ');
         if (p === null) break;
@@ -415,7 +484,7 @@ function lineMode() {
           state.results.push(rec);
           console.log((rec.ok ? '  ok   ' : '  FAIL ') + path.basename(rec.in) +
             (rec.ok ? '  [' + rec.dir + '] objects=' + rec.objects + ' emitted=' + rec.emitted +
-              ' warnings=' + rec.warnings.length : ': ' + rec.error));
+              ' warnings=' + rec.warnings.length + (rec.pages ? ' pages=' + rec.pages : '') : ': ' + rec.error));
         });
         printReport();
       }
@@ -448,4 +517,4 @@ function main() {
 
 if (require.main === module) main();
 
-module.exports = { buildScreen, state, makeJobs, runOne, MENU };
+module.exports = { buildScreen, state, makeJobs, runOne, runMerge, MENU };

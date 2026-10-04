@@ -330,9 +330,25 @@ check('tui: every screen renders a full frame', (() => {
     .every(sc => { tui.state.screen = sc; return tui.buildScreen(80, 24).length === 24; });
 })());
 check('tui: a narrow terminal still yields a full frame', tui.buildScreen(30, 10).length === 10);
+check('tui: running screen tolerates a stale job index', (() => {
+  tui.state.jobs = [{ in: src }]; tui.state.jobIndex = 99; tui.state.screen = 'running';
+  const ok = tui.buildScreen(60, 20).length === 20;
+  tui.state.screen = 'menu';
+  return ok;
+})());
 const rec = tui.runOne({ in: src, out: path.join(os.tmpdir(), 'gsp-conv-tui-smoke.ggb') });
 check('tui: runOne converts t.gsp to a real .ggb',
   rec.ok && fs.existsSync(rec.out) && fs.statSync(rec.out).size > 0, rec.error || rec.dir);
+check('tui: runMerge combines a folder of .ggb into a multi-page .gsp', (() => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gsp-conv-merge-'));
+  try {
+    if (!fs.copyFileSync || !rec.ok) return false;
+    fs.copyFileSync(rec.out, path.join(dir, 'a.ggb'));
+    fs.copyFileSync(rec.out, path.join(dir, 'b.ggb'));
+    const rm = tui.runMerge(dir, path.join(dir, 'out.gsp'));
+    return rm.ok && rm.pages === 2 && fs.existsSync(rm.out);
+  } finally { try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) { /* ignore */ } }
+})(), 'runMerge');
 try { fs.unlinkSync(rec.out); } catch (e) { /* ignore */ }
 
 console.log(fails ? ('SMOKE FAILED (' + fails + ')') : 'SMOKE PASSED');
