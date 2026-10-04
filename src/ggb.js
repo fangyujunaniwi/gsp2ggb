@@ -1019,19 +1019,17 @@ function planOf(o, byId) {
             ? 'point on circle: position not computable (initial position left to GeoGebra)'
             : 'point on circle: stored parameter form not decodable (initial position left to GeoGebra)' };
       }
-      // function plot (t72): the plot's tag-2306 record stores the x-domain [xmin, xmax] in
-      // frame units and the point parameter is the fraction along it, so x = xmin + t·(xmax-xmin)
-      // and the point is (x, f(x)) on the plotted function object (the plot's first parent).
-      if (path && path.srcType === 72 && t !== null) {
+      // function plot (t72): the plotted function itself is a Path in GeoGebra, so emit
+      // `Point(f)` — the point stays constrained to the graph and is draggable along it.
+      // Seed the position from the plot's x-domain fraction when it can be resolved;
+      // otherwise leave the initial position to GeoGebra (same policy as circle points).
+      if (path && path.srcType === 72) {
         const fn = path.parents && path.parents[0];
-        const dom = plotDomain(path);
-        if (fn != null && dom && Number.isFinite(dom[0]) && Number.isFinite(dom[1])) {
-          const x0 = dom[0] + t * (dom[1] - dom[0]);
-          return { elem: 'point',
-            exprTpl: '(' + fmt(x0) + ',' + R(fn) + '(' + fmt(x0) + '))',
-            args: [fn], warn: 'point on function plot (domain fraction)' };
-        }
-        return skip('point on function plot without decodable function/domain');
+        if (fn == null) return skip('point on function plot without a function parent');
+        const xy = gspPosXY(o, byId, 0);
+        return { elem: 'point', exprTpl: 'Point(' + R(fn) + ')', args: [fn],
+          ...(xy ? { pathXY: toPt(xy) } : {}),
+          warn: 'point on function plot (free on the graph)' };
       }
       // arc / locus paths: the object is itself a Path in GeoGebra, so keep the point
       // constrained to it.  The stored parameter lives in GSP's own arc/locus frame

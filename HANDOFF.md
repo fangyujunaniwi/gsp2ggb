@@ -161,6 +161,10 @@
      实测 `example-36`：轴上的 `H/G → Point(x_)`、`O_11/O_12 → Point(y_)`；`example-25`：`Point(j)/Point(c1')`；
      真机 GeoGebra 打开 `ok=True err=False`。
   3. 覆盖率基本持平（279,491 → 279,549；语义修正为主），`smoke` 通过；反向 `Point(路径)→t15` 亦对得上。
+  4. **追加（`t.gsp` 反馈）**：`t.gsp` 里的 `A` 是**函数图象上的点**（宿主 `t72`，`f=√3` 的水平线），上一轮没覆盖到，
+     仍被发成固定点 `(x0,f(x0))` → 无法拖动。现改为 **`Point(f)`**（GeoGebra 中函数图象也是路径），点**可沿图象自由拖动**；
+     位置能算出时附 `<coords>`，否则交给 GeoGebra。实测 `t.ggb` 里 `A = Point(f)`，真机打开 `ok=True err=False`；
+     覆盖率 279,549 → **279,610**（69.88%）。`smoke` 断言同步更新为 `A = Point(f)`。
 - ✅ **本机续作（2026-10-03，第三十轮）：反向转换增强。**
   1. 现状：对 `gsp→ggb→gsp` 往返（150 文件）反向仅 **33.1%**（14,155/42,760）。根因：`translate args` 2777、
      `cmd Point` 1067、`unparsed expression` 7908、`(P)+(dx,dy)` 偏移点等。

@@ -49,14 +49,7 @@ check('measurement O_5 hidden in graphics view (no slider figure)', showOf('O_5'
 check('measurement O_7 hidden in graphics view (no slider figure)', showOf('O_7') === 'false', showOf('O_7'));
 check('segment O_6 stays visible in graphics view', showOf('O_6') === 'true', showOf('O_6'));
 check('point A stays visible in graphics view', showOf('A') === 'true', showOf('A'));
-check('A sits on f as (x, f(x))', /^\(.*,f\(.*\)\)$/.test(exprOf('A') || ''), exprOf('A'));
-check('A on the correct domain point (slope AC ~ sqrt(3))', (() => {
-  const m = (exprOf('A') || '').match(/^\(([-0-9.eE]+),f\(/);
-  if (!m) return false;
-  const xA = +m[1], f = Math.sqrt(3);
-  const slope = (f - 0) / (xA - 0);          // C = (0,0)
-  return Math.abs(slope - f) < 0.01;
-})(), exprOf('A'));
+check('A is a draggable free point on f (Point(f))', exprOf('A') === 'Point(f)', exprOf('A'));
 check('XML well-formed-ish', /<\/geogebra>/.test(xml) && /<construction[\s>]/.test(xml) && /<geogebra[\s>]/.test(xml));
 
 // --- round-trip: ggb -> gsp -> ggb ---
