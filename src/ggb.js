@@ -73,7 +73,7 @@ function toGsp(c) {                 // ggb -> gsp logical (y-down)
 const POINT_KINDS = new Set(['free', 'midpoint', 'pointOnPath', 'intersectLL',
   'intersectLC1', 'intersectLC2', 'intersectCC1', 'intersectCC2', 'foot', 'offsetPoint',
   'unitX', 'squareUnitY', 'rectUnitY', 'rotateImage', 'dilateImage', 'translateImage', 'plotPoint', 'plotXY',
-  'pointAtParam']);
+  'pointAtParam', 'curveIntersect', 'customXformPt']);
 const LINE_KINDS = new Set(['line2pt', 'perpLine', 'parallelLine', 'angleBisector', 'axis']);
 const SEG_KINDS = new Set(['segment']);
 const XFORM_KINDS = new Set(['translateImage', 'rotateImage', 'dilateImage', 'reflectImage',
@@ -588,6 +588,12 @@ function axisScaleRef(o, byId, R, depth) {
 // cascade correctly when one of them is skipped).
 function coordSysRef(o, byId, R) {
   if (!o) return null;
+  // A measurement stored against a function plot (t72) really uses that plot's own
+  // coordinate system (its t61 parent); resolve through it.
+  if (o.srcType === 72) {
+    const cs = (o.parents || []).map(id => byId.get(id)).find(p => p && p.srcType === 61);
+    return cs ? coordSysRef(cs, byId, R) : null;
+  }
   const P = o.parents.map(i => byId.get(i));
   if (P.length === 2 && P[0] && P[1] && P[0].kind === 'axis' && P[1].kind === 'axis') {
     const ax = axisScaleRef(P[0], byId, R), ay = axisScaleRef(P[1], byId, R);
