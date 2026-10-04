@@ -178,19 +178,24 @@ function readParams(pay) {
 function gspToIR(buf, opts) {
   opts = opts || {};
   const recs = parseRecords(buf);
-  const hasSections = recs.some(r => r.tag === 1100);
+  const has1100 = recs.some(r => r.tag === 1100);
+  // GSP 5.06 stores a page boundary as a tag-2316 record (with tag 2216/8004) inside the
+  // LAST object of the page instead of the older tag-1100 header; the next object starts
+  // the next page.  Prefer 1100 when present.
+  const has2316 = recs.some(r => r.tag === 2316);
+  const hasSections = has1100 || (!has1100 && has2316);
   const sections = [{ name: '', objects: [] }];
   let cur = null; // current object
   let curSec = sections[0];
+  let pendingBreak = false;
+
+  const newSection = name => { cur = null; curSec = { name, objects: [] }; sections.push(curSec); };
 
   for (const r of recs) {
-    if (r.tag === 1100) {
-      cur = null;
-      curSec = { name: sectionName(r.pay), objects: [] };
-      sections.push(curSec);
-      continue;
-    }
+    if (r.tag === 1100) { newSection(sectionName(r.pay)); continue; }
+    if (r.tag === 2316 && !has1100) { pendingBreak = true; continue; }
     if (r.tag === 2000) {
+      if (pendingBreak) { pendingBreak = false; newSection(''); }
       cur = {
         type: r.pay.readUInt16LE(0),
         hdr: Buffer.from(r.pay),
@@ -290,16 +295,18 @@ function gspToIR(buf, opts) {
     };
   };
 
-  // build per-scope lists and map raw -> ir
-  const scopes = hasSections ? allSecs.map(s => s.objects) : [globalList];
+  // build lists: IR in file order; section index per object.  Parent resolution is
+  // section-local only for tag-1100 files (their refs are page-relative); GSP 5.06
+  // tag-2316 pages keep global parent ordinals.
+  const scopes = has1100 ? allSecs.map(s => s.objects) : [globalList];
   const rawToIR = new Map();
-  scopes.forEach((list, si) => {
-    list.forEach((raw, i) => {
-      const ir = makeIR(raw, objects.length + 1, i + 1);
-      ir.section = si;                       // page index (0-based); pages exist only if hasSections
-      objects.push(ir);
-      rawToIR.set(raw, ir);
-    });
+  const rawSec = new Map();
+  allSecs.forEach((s, si) => s.objects.forEach(raw => rawSec.set(raw, si)));
+  globalList.forEach((raw, i) => {
+    const ir = makeIR(raw, objects.length + 1, i + 1);
+    ir.section = rawSec.has(raw) ? rawSec.get(raw) : 0;
+    objects.push(ir);
+    rawToIR.set(raw, ir);
   });
   // resolve parents
   for (const list of scopes) {
@@ -307,12 +314,12 @@ function gspToIR(buf, opts) {
       const ir = rawToIR.get(raw);
       for (const pref of raw.parents) {
         let target = null;
-        if (hasSections) {
+        if (has1100) {
           // section-local first (1-based), then global ordinal
           if (pref >= 1 && pref <= list.length) target = rawToIR.get(list[pref - 1]);
           else if (pref >= 1 && pref <= globalList.length) target = rawToIR.get(globalList[pref - 1]);
-        } else if (pref >= 1 && pref <= list.length) {
-          target = rawToIR.get(list[pref - 1]);
+        } else if (pref >= 1 && pref <= globalList.length) {
+          target = rawToIR.get(globalList[pref - 1]);
         }
         if (target) ir.parents.push(target.id);
         else {
@@ -331,7 +338,7 @@ function gspToIR(buf, opts) {
       hasSections,
       sections: allSecs.map((s, si) => ({
         name: s.name, n: s.objects.length,
-        ids: scopes[si].map(raw => rawToIR.get(raw).id)
+        ids: s.objects.map(raw => rawToIR.get(raw).id)
       }))
     }
   };
