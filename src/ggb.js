@@ -110,6 +110,16 @@ function isPointish(o) {
     return isPointish(o._byId ? o._byId.get(o.parents[0]) : null);
   return POINT_KINDS.has(o.kind);
 }
+// Resolve an object to a point id: itself if it is point-like, its centre if it is a circle
+// (GSP lets a circle's centre be measured), else null.
+function pointLikeId(id, byId) {
+  const o = byId.get(id);
+  if (!o) return null;
+  if (isPointish(o)) return id;
+  if (CIRC_KINDS.has(o.kind) && o.parents && o.parents.length && isPointish(byId.get(o.parents[0])))
+    return o.parents[0];
+  return null;
+}
 // GSP `Draggable` objects (a moveAction drags the *source* of each pair toward the
 // *destination*): free points, points-on-path and the coordinate-system unit points.
 function isDraggable(o) {
@@ -1071,6 +1081,13 @@ function planOf(o, byId) {
       if (path && (path.kind === 'arc' || path.kind === 'arcCenter' || path.kind === 'arc3Points' || path.kind === 'locus'))
         return { elem: 'point', exprTpl: 'Point(' + R(path.id) + ')', args: [path.id],
           warn: 'point on ' + path.kind + ': initial position left to GeoGebra' };
+      // A point "on" an intersection object (t98) is on the function graph that produced it.
+      if (path && path.kind === 'curveIntersect') {
+        const fp = (path.parents || []).map(id => byId.get(id)).find(p => p && p.srcType === 72);
+        const fn = fp && fp.parents && fp.parents[0];
+        if (fn != null) return { elem: 'point', exprTpl: 'Point(' + R(fn) + ')', args: [fn],
+          warn: 'point on the function graph through an intersection (t98 host)' };
+      }
       return skip('point on unsupported path (falls back nowhere)');
     }
     case 'translateImage':
@@ -1224,6 +1241,15 @@ function planOf(o, byId) {
     case 'squareUnitY':
     case 'rectUnitY':
       {
+        const p0 = byId.get(o.parents[0]);
+        // The parent may be a function plot (t72); its own coordinate system supplies the unit.
+        if (p0 && p0.srcType === 72) {
+          const cs = (p0.parents || []).map(id => byId.get(id)).find(q => q && q.srcType === 61);
+          const yax = cs && cs.parents && cs.parents.length >= 2 ? byId.get(cs.parents[1]) : null;
+          const unit = yax && yax.parents && yax.parents[1] != null ? yax.parents[1] : null;
+          if (unit != null) return { elem: 'point', exprTpl: R(unit), args: [unit],
+            warn: 'unit point of the plot coordinate system' };
+        }
         const org = unitPointOrigin(o, byId);
         const s = unitScaleOf(o, byId, 0);
         if (org && s != null) {
@@ -1496,19 +1522,21 @@ function planOf(o, byId) {
     }
     case 'abscissa': {
       // SimpleMeasure mT13 = (x(P) - originX)/unitX in the coordinate system of parent 1.
-      if (P.length === 2 && isPointish(P[0])) {
+      const pid = pointLikeId(o.parents[0], byId);
+      if (pid != null && P.length === 2) {
         const cs = coordSysRef(P[1], byId, R);
         if (cs) return { elem: 'numeric',
-          exprTpl: '(x(' + R(o.parents[0]) + ') - (' + cs.ox + '))/(' + cs.ux + ')', args: o.parents };
+          exprTpl: '(x(' + R(pid) + ') - (' + cs.ox + '))/(' + cs.ux + ')', args: o.parents };
       }
       return skip('abscissa needs point + coordinate system');
     }
     case 'ordinate': {
       // SimpleMeasure mT14 = -(y(P) - originY)/unitY.
-      if (P.length === 2 && isPointish(P[0])) {
+      const pid = pointLikeId(o.parents[0], byId);
+      if (pid != null && P.length === 2) {
         const cs = coordSysRef(P[1], byId, R);
         if (cs) return { elem: 'numeric',
-          exprTpl: '-(y(' + R(o.parents[0]) + ') - (' + cs.oy + '))/(' + cs.uy + ')', args: o.parents };
+          exprTpl: '-(y(' + R(pid) + ') - (' + cs.oy + '))/(' + cs.uy + ')', args: o.parents };
       }
       return skip('ordinate needs point + coordinate system');
     }
@@ -1522,6 +1550,18 @@ function planOf(o, byId) {
           warn: 'dynamic plot point (PlotXY) in a coordinate system' };
       }
       return skip('plotXY needs x,y,coordinate system');
+    }
+    case 'formula': {
+      // t73 = a rendered formula/text object (rich tag-2300 markup).  Decode its displayed
+      // text and emit it as a GeoGebra text object.
+      const rec = ((o._raw && o._raw.recs) || []).find(x => x.tag === 2300);
+      let txt = '';
+      if (rec) { try { txt = require('./gsp.js').decodeGspText(rec.pay); } catch (e) { txt = ''; } }
+      if (!txt) txt = o.label || '';
+      if (!txt) return skip('formula text (t73) is empty');
+      return { elem: 'text',
+        exprTpl: '"' + String(txt).replace(/\\/g, '\\\\').replace(/"/g, "'").replace(/[\r\n]+/g, ' ') + '"',
+        warn: 'formula text (t73)' };
     }
     case 'text': {
       if (o.msg) {                       // FixedText: message stored inline (tag 2300)
@@ -1597,7 +1637,16 @@ function planOf(o, byId) {
       // GSP function (t71) and derivative (t78) objects store their definition
       // in a tag-2311 program; t72 is the plot, which GeoGebra draws from the
       // function itself.
-      if (o.srcType === 72) return skip('function plot (recreated by its function)');
+      if (o.srcType === 72) {
+        // The plot object: GeoGebra draws it from the function itself, so emit the graph as
+        // a function referencing the same definition (kept so the object count survives).
+        const fn = o.parents && byId.get(o.parents[0]);
+        const fp = fn ? planOf(fn, byId) : null;
+        if (fp && !fp.skip && fp.exprTpl)
+          return { elem: 'function', exprTpl: fp.exprTpl, args: fp.args || [],
+            warn: 'function plot (graph of its function)' };
+        return skip('function plot without an emittable function');
+      }
       if (o.srcType === 71 || o.srcType === 78) {
         const dec = decodedExpr(o);
         if (dec) return { elem: 'function', exprTpl: dec.exprTpl, args: dec.args };

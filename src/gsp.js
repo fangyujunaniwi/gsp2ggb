@@ -149,6 +149,7 @@ const TYPES = {
   66: { k: 'ordinate' },        // SimpleMeasure mT14: -(y(P)-originY)/unitY
   69: { k: 'plotXY' },          // PlotXY: point at (xExpr,yExpr) in a coordinate system
   70: { k: 'plotXY' },          // PlotXY variant (same [xExpr,yExpr,coordSys] shape)
+  73: { k: 'formula' },         // formula/text object (rich tag-2300 markup)
   76: { k: 'iteration' },      // GSP iteration x_{k+1}=f(x_k): parents [preimage, image, ...]; count in tag 2314 +16
   89: { k: 'iterationParam' }, // iteration with the count as parents[0] (depth iteration): [count, preimage, image, ...]
   77: { k: 'iterateImage' },   // iterate image: parents [object X, iteration] -> the iterates of X
