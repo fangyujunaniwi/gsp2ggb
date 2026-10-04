@@ -18,3 +18,7 @@ Desktop.ini
 .DS_Store
 .vscode/
 .idea/
+
+# Generated multi-page output folders
+/00005/
+
