@@ -532,6 +532,21 @@ function plotDomain(o) {
   return null;
 }
 
+// Evaluate a GeoGebra expression template numerically at x = xVal.  Only expressions that
+// are self-contained (no {#id} object references, so no measurements/parameters) are
+// evaluated; anything else returns null and the caller leaves the position to GeoGebra.
+function evalConstExpr(tpl, xVal) {
+  if (!tpl || /\{#/.test(String(tpl))) return null;
+  let s = String(tpl).replace(/\^/g, '**').replace(/π/g, 'PI');
+  if (!/^[\s0-9eE+\-*/().,a-zA-Z_]*$/.test(s)) return null;
+  try {
+    // eslint-disable-next-line no-new-func
+    const f = new Function('x', 'with (Math) { return (' + s + '); }');
+    const v = f(xVal);
+    return Number.isFinite(v) ? v : null;
+  } catch (e) { return null; }
+}
+
 // Scalar (origin, unit) of one coordinate axis, as GeoGebra expressions.
 // Axis4 (origin point + unit point) → origin = x/y(point), unit = px/SCALE.
 // Axis3 (parent coordinate system)  → inherit from that coordinate system.
@@ -826,7 +841,9 @@ function planOf(o, byId) {
     case 'free':
       if (o.coords) {
         const g = toPt(o.coords);
-        return { elem: 'point', free: { xy: g } };
+        const plan = { elem: 'point', free: { xy: g } };
+        if (byId.fixedPoints && byId.fixedPoints.has(o.id)) plan.fixed = true;
+        return plan;
       }
       {
         const dec = decodedExpr(o);      // free number / parameter: value stored as a constant program
@@ -1026,9 +1043,19 @@ function planOf(o, byId) {
       if (path && path.srcType === 72) {
         const fn = path.parents && path.parents[0];
         if (fn == null) return skip('point on function plot without a function parent');
-        const xy = gspPosXY(o, byId, 0);
+        // Seed the initial position from the plot's x-domain fraction and the function
+        // value, so Point(f) starts exactly where the sketch shows it.
+        const fnPlan = byId.get(fn) ? planOf(byId.get(fn), byId) : null;
+        const dom = plotDomain(path);
+        let xy = null;
+        if (fnPlan && fnPlan.exprTpl && dom && t !== null &&
+            Number.isFinite(dom[0]) && Number.isFinite(dom[1])) {
+          const x0 = dom[0] + t * (dom[1] - dom[0]);
+          const y0 = evalConstExpr(fnPlan.exprTpl, x0);
+          if (y0 !== null) xy = { x: x0, y: y0 };
+        }
         return { elem: 'point', exprTpl: 'Point(' + R(fn) + ')', args: [fn],
-          ...(xy ? { pathXY: toPt(xy) } : {}),
+          ...(xy ? { pathXY: xy } : {}),
           warn: 'point on function plot (free on the graph)' };
       }
       // arc / locus paths: the object is itself a Path in GeoGebra, so keep the point
@@ -1643,6 +1670,12 @@ function irToGgb(ir) {
       byId.plotted.set(o.parents[0], { xmin: d ? d[0] : null, xmax: d ? d[1] : null });
     }
   }
+  // Coordinate-axis origins (Axis4 first parent) are structural: in the sketch they anchor
+  // the whole coordinate system, so they are emitted as fixed points (not draggable).
+  byId.fixedPoints = new Set();
+  for (const o of ir.objects)
+    if ((o.srcType === 58 || o.srcType === 59) && o.parents && o.parents.length)
+      byId.fixedPoints.add(o.parents[0]);
 
   // 1) plan every object
   const plans = new Map();
@@ -1799,6 +1832,7 @@ function irToGgb(ir) {
         coordsAll.push(p.pathXY);
       }
       inner += '\t<pointSize val="5"/>\n\t<pointStyle val="0"/>\n';
+      if (p.fixed) inner += '\t<fixed val="true"/>\n';
     } else if (p.elem === 'numeric') {
       inner += '\t<value val="' + fmt(p.free ? p.free.value : 0) + '"/>\n';
       if (!dep) inner += '\t<symbolic val="true" />\n';
