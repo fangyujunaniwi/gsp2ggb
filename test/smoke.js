@@ -232,7 +232,7 @@ if (fs.existsSync(circSrc)) {
     { id: 6, kind: 'pointOnPath', parents: [5], params: [0.5], label: 'X', srcType: 15 },
   ], warnings: [] };
   const sx = unzip(irToGgb(sIR).buf).get('geogebra.xml').toString('utf8');
-  const e6 = (sx.match(/<expression label="X_" exp="([^"]*)"/) || [])[1];
+  const e6 = (sx.match(/<expression label="X[^"]*" exp="([^"]*)"/) || [])[1];
   check('t15 on a transformed circle -> Point(<transformed conic>)',
     e6 === 'Point(c2)', e6);
 }

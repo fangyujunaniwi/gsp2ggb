@@ -5,12 +5,18 @@
 > **接手先跑（自检，项目根 = 本目录）**：
 > ```powershell
 > node test/smoke.js                    # 应输出 SMOKE PASSED（无需语料）
-> node tools/emitstats.js "<语料根>"    # 全树 1478 文件基线：objects=407095 emitted=244370 rate=60.03%（2026-10-03）
+> node tools/emitstats.js "<语料根>"    # 全树基线：objects=400149 emitted=283056 rate=70.74%（2026-10-04）
 > node tools/exprcov.js  "<语料根>"     # 2311 解码覆盖率 57079/57112 = 99.9%
 > ```
-> 语料按本机实际路径传入（开发机为 `D:\Program Files (x86)\Sketchpad5`），或设 `GSP_DIR` 环境变量，
-> 详见 `SETUP.md`。注意：下文历史记录里的 `1430 文件`/`400149 对象` 是**不含 Samples/Tool Folder**
-> 的旧口径，与本机全树 `1478/407095` 不可直接比较。
+>
+> **验证生成的 `.ggb` 会不会在 GeoGebra 里报“打开文件失败”**（GeoGebra 对非法表达式只在对话框里
+> 提示、文件仍算能打开，所以必须检测该对话框）：
+> ```powershell
+> powershell -ExecutionPolicy Bypass -File tools/ggbcheck.ps1 -File <file.ggb> -WaitSec 25 `
+>   -Exe "D:\Program Files (x86)\GeoGebra 5.4\GeoGebra.exe"     # 看 RESULT ... err=False 才算干净
+> ```
+> 语法约束的实测结论见 `ref-ctrl/ggb-syntax/README.md`（命令名大小写、`ParallelLine` 不存在、
+> 保留标签 `x_`/`y_`、`min`/`max` 须大写 等）。
 
 ## 项目目标
 把 **几何画板 `.gsp` ⇄ GeoGebra `.ggb`** 双向转换，做成 **CLI 工具**（仅 Node.js）。
@@ -152,6 +158,21 @@
   3. 全树复测：**`emitted 228234 → 236087`（rate 56.06% → 57.99%，+7,853）**；
      `t15` 发射 10,858→11,668、`point on unsupported path` 4,641→3,853，其余为级联。
      `node test/smoke.js` 新增 1 条断言。
+- ✅ **本机续作（2026-10-04，第三十八轮）：修复生成的 `.ggb` 在 GeoGebra 里“打开文件失败”的四类非法表达式。**
+  > 用户反馈“打开都报错”。GeoGebra 对非法表达式只弹“打开文件失败 / error in <expression>”对话框，
+  > 但文件仍能被 `ggbcheck` 判为能打开，所以之前一路漏检。逐条用最小 `.ggb` 探针定位（见 `ref-ctrl/ggb-syntax/README.md`）：
+  1. **保留标签 `x_`/`y_`/`z_`**：`sanitizeLabel` 原来给保留名 `x/y/z` 加后缀 `_` → `x_`/`y_`/`z_`，
+     而 GeoGebra 把这几个名字保留给坐标轴，**引用它们的表达式全部报错**（`Point(x_)`、`Intersect(x_,f,1)`…）。
+     改为加 `_1`（`x_1`/`y_1` 可引用），并把 `x_/y_/z_` 也加入 `RESERVED`。
+  2. **`ParallelLine` 不是 GeoGebra 命令**：平行线应发射 `Line(<Point>, <Line>/<Segment>/<Vector>)`。
+  3. **命令名大小写敏感**：`min`/`max` 须为 `Min`/`Max`（`sqrt`/`abs`/`ln`/`exp` 是内建函数，小写合法）。
+  4. **坐标轴原点不是点时跳过**：函数图充当坐标系时原点父级是函数，原来会发射非法的 `Line(f, f+(1,0))`。
+  - 工具：`tools/ggbcheck.ps1` 改为**枚举所有顶层窗口**以检测错误对话框（`err=True`）；
+    新增 `tools/ggbshot.ps1`（打开+截图）、`tools/ggbexprs.js`、`tools/lscheck.js` 等。
+  - 验证：**`Sample.gsp` 19 页全部 `err=False`**（原为全报错）；`00005.gsp` page1 干净。
+    覆盖率 70.79% → **70.74%**（283056，删除 198 个非法轴/悬空对象）；`smoke` 通过。
+  - 已知残留：`00005.gsp` page2-4 仍报错——该文件各页**互相引用**（page2 的轴/度量引用 page1 的对象）
+    且把**函数当点/直线**用（`(f)+(1,0)`、`Line(f,f_2)`、含 `x` 的 t71 度量），需进一步建模。
 - ✅ **本机续作（2026-10-04，第三十七轮）：GSP 5.06 的多页编码（`tag 2316`）——`00005.gsp` 正确拆成 4 页。**
   1. `00005.gsp` **没有** `tag 1100`；它的分页记录是 **`tag 2316`（伴 `tag 2216/8004`）**，且位于**每页最后一个对象的记录里**
      （其后下一个对象的 `tag 2000` 开始新页）。实测边界为对象 `1-73 / 74-116 / 117-155 / 156-188`。

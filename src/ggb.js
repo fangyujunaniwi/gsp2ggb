@@ -218,7 +218,7 @@ function markerNumeric(mk, byId) {
 }
 
 // ---------- label assignment ----------
-const RESERVED = new Set(['x', 'y', 'z', 'e', 'i', 'pi', 'exp', 'ln', 'log', 'sin', 'cos', 'tan',
+const RESERVED = new Set(['x', 'y', 'z', 'x_', 'y_', 'z_', 'e', 'i', 'pi', 'exp', 'ln', 'log', 'sin', 'cos', 'tan',
   'sqrt', 'abs', 'min', 'max', 'sum', 'length', 'distance', 'midpoint', 'segment',
   'circle', 'line', 'intersect', 'translate', 'rotate', 'dilate', 'foot', 'slope',
   'polygon', 'vector', 'point', 'number', 'text', 'function', 'list']);
@@ -227,7 +227,11 @@ function sanitizeLabel(raw, used, stemHint) {
   if (!/^[A-Za-z][A-Za-z0-9_']{0,14}$/.test(base)) {
     base = ''; // must generate
   } else if (RESERVED.has(base) || RESERVED.has(base.toLowerCase())) {
-    base = base + '_';
+    // NOTE: GeoGebra reserves the bare single-letter coordinate names x/y/z *and their
+    // single-underscore forms* x_/y_/z_ (those denote the axes), so a user object labelled
+    // "x_" can never be referenced and every command using it fails to load.  Use "_1"
+    // (verified: x_1/x__/xa are all referenceable, only x_/y_/z_ are not).
+    base = base + '_1';
   }
   let lab = base || null;
   if (lab) {
@@ -913,13 +917,17 @@ function planOf(o, byId) {
       if (P.length === 2) return { elem: 'line', exprTpl: 'PerpendicularLine(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ')', args: o.parents };
       return skip('perp line needs 2 parents');
     case 'parallelLine':
-      if (P.length === 2) return { elem: 'line', exprTpl: 'ParallelLine(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ')', args: o.parents };
+      // GeoGebra has no "ParallelLine" command: the parallel through a point is Line(<Point>,<Line>).
+      if (P.length === 2) return { elem: 'line', exprTpl: 'Line(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ')', args: o.parents };
       return skip('parallel line needs 2 parents');
     case 'angleBisector':
       if (P.length === 3) return { elem: 'line', exprTpl: 'AngleBisector(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ',' + R(o.parents[2]) + ')', args: o.parents };
       return skip('bisector needs 3 parents');
     case 'axis': {
       if (P.length < 1) return skip('axis needs origin');
+      // The origin parent can be a non-point (e.g. a function plot's coordsys), which would
+      // emit the invalid Line(f, f+(1,0)).  Skip instead of guessing.
+      if (!isPointish(P[0])) return skip('axis origin is not a point');
       const O = R(o.parents[0]);
       const d = axisHorizontal(o) ? '(1,0)' : '(0,1)';
       return { elem: 'line', exprTpl: 'Line(' + O + ',' + O + '+' + d + ')', args: [o.parents[0]],
@@ -1434,7 +1442,8 @@ function planOf(o, byId) {
             const X = R(o.parents[0]), A = ref.p1, B = ref.p2;
             const proj = '((x(' + X + ')-x(' + A + '))*(x(' + B + ')-x(' + A + ')) + (y(' + X + ')-y(' + A + '))*(y(' + B + ')-y(' + A + ')))/'
               + '((x(' + B + ')-x(' + A + '))^2 + (y(' + B + ')-y(' + A + '))^2)';
-            const tpl = base === 'segment' ? 'min(1, max(0, ' + proj + '))' : proj;
+            // GeoGebra command names are case-sensitive in XML: it is Min/Max, not min/max.
+            const tpl = base === 'segment' ? 'Min(1, Max(0, ' + proj + '))' : proj;
             return { elem: 'numeric', exprTpl: tpl, args: [o.parents[0]].concat(ref.ids),
               warn: 'point position mapped onto another straight (t94 projection)' };
           }
