@@ -2023,7 +2023,38 @@ function ggbToIR(buf) {
   };
 }
 
-module.exports = { irToGgb, ggbToIR, SCALE, toGgb, toGsp, FUNCS,
+// Split a multi-page GSP IR into one single-page IR per section, pulling in any
+// cross-page parents a page depends on.  Used to emit one .ggb per sketch page.
+function sectionIR(ir, ids) {
+  const set = new Set(ids || []);
+  const byId = new Map(ir.objects.map(o => [o.id, o]));
+  const stack = [...set];
+  while (stack.length) {
+    const o = byId.get(stack.pop());
+    if (!o) continue;
+    for (const p of (o.parents || [])) if (!set.has(p)) { set.add(p); stack.push(p); }
+  }
+  return { ...ir, objects: ir.objects.filter(o => set.has(o.id)), meta: { ...ir.meta, hasSections: false } };
+}
+
+// Returns [{ name, buf, doc }] — one entry per non-empty page (or a single entry when the
+// sketch is single-page).
+function irToGgbPages(ir) {
+  const secs = (ir.meta && ir.meta.sections) || [];
+  if (secs.length > 1) {
+    const out = [];
+    secs.forEach((s, i) => {
+      if (!s.ids || !s.ids.length) return;
+      const r = irToGgb(sectionIR(ir, s.ids));
+      out.push({ name: s.name || ('page' + (i + 1)), buf: r.buf, doc: r });
+    });
+    return out;
+  }
+  const r = irToGgb(ir);
+  return [{ name: '', buf: r.buf, doc: r }];
+}
+
+module.exports = { irToGgb, irToGgbPages, ggbToIR, SCALE, toGgb, toGsp, FUNCS,
   // internals exposed for diagnostics/probes (tools/*): not part of the public API
   planOf, straightRef, elemTypeOf, isPointish, XFORM_KINDS, LINE_KINDS, SEG_KINDS, sketchFrame, plotDomain,
   coordSysRef, axisScaleRef, unitScaleOf, axisHorizontal, gspPosXY };

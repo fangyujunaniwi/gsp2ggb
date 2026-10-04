@@ -298,8 +298,9 @@ function serialize(recs) {
 
 const { toGsp } = require('./ggb.js');
 
-function irToGsp(ir) {
-  const warnings = [];
+// Emit one IR's object blocks into outRecs (appending), returning the number emitted.
+// Parent references are remapped to output ordinals local to this page.
+function emitIR(ir, outRecs, warnings) {
   const byLabel = new Map();
   for (const o of ir.objects) if (o.label) byLabel.set(o.label, o);
 
@@ -324,7 +325,6 @@ function irToGsp(ir) {
   const offy = isFinite(miny) && miny < MARGIN ? MARGIN - miny : 0;
 
   // pass 2: emit
-  const outRecs = tpl.header.map(r => ({ tag: r.tag, pay: Buffer.from(r.pay, 'hex') }));
   let emitted = 0;
   const ordOf = new Map(); // IR id -> output ordinal (GSP parent refs are output-relative)
   for (const { o, sp } of specs) {
@@ -347,13 +347,44 @@ function irToGsp(ir) {
     emitted++;
     ordOf.set(o.id, emitted);
   }
+  return emitted;
+}
+
+function finishGsp(outRecs, emitted) {
   for (const r of tpl.tail.map(r => ({ tag: r.tag, pay: Buffer.from(r.pay, 'hex') }))) outRecs.push(r);
   // GSP validates tag1000[24] == object count; tail 9000 mirrors it.
   const c1000 = outRecs.find(r => r.tag === 1000);
   if (c1000 && c1000.pay.length >= 28) c1000.pay.writeUInt32LE(emitted, 24);
   const t9000 = [...outRecs].reverse().find(r => r.tag === 9000);
   if (t9000 && t9000.pay.length >= 4) t9000.pay.writeUInt32LE(emitted, 0);
+}
+
+function newHeader() {
+  return tpl.header.map(r => ({ tag: r.tag, pay: Buffer.from(r.pay, 'hex') }));
+}
+
+function irToGsp(ir) {
+  const warnings = [];
+  const outRecs = newHeader();
+  const emitted = emitIR(ir, outRecs, warnings);
+  finishGsp(outRecs, emitted);
   return { buf: serialize(outRecs), warnings, stats: { planned: emitted, total: ir.objects.length } };
 }
 
-module.exports = { irToGsp };
+// Combine several IRs into ONE multi-page .gsp (each IR becomes a tag-1100 section).
+// pages = [{ ir, name }].
+function irListToGsp(pages) {
+  const warnings = [];
+  const outRecs = newHeader();
+  let emitted = 0;
+  for (const pg of pages) {
+    const nm = Buffer.from(String((pg && pg.name) || ''), 'utf8');
+    outRecs.push({ tag: 1100, pay: Buffer.concat([nm, Buffer.from([0])]) });
+    emitted += emitIR(pg.ir, outRecs, warnings);
+  }
+  finishGsp(outRecs, emitted);
+  const total = pages.reduce((n, p) => n + p.ir.objects.length, 0);
+  return { buf: serialize(outRecs), warnings, stats: { planned: emitted, total, pages: pages.length } };
+}
+
+module.exports = { irToGsp, irListToGsp };

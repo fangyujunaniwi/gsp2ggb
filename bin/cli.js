@@ -19,6 +19,7 @@ function parseArgs(argv) {
     if (t === '-o' || t === '--out' || t === '--outdir') { a[t.replace(/^-+/, '')] = argv[++i]; }
     else if (t === '--to') { a.to = argv[++i]; }
     else if (t === '--quiet' || t === '-q') { a.quiet = true; }
+    else if (t === '--merge') { a.merge = true; }
     else if (t === '--json') { a.json = true; }
     else if (t === '-h' || t === '--help') { a.help = true; }
     else a._.push(t);
@@ -34,6 +35,22 @@ function main() {
   }
   const input = a._[0];
   const st = fs.statSync(input);
+  // --merge: combine several .ggb (a folder, or the listed files, in order) into ONE
+  // multi-page .gsp (one tag-1100 section per file).
+  if (a.merge) {
+    const { convertManyToGsp } = require('../src/convert.js');
+    const dir = st.isDirectory() ? input : path.dirname(input);
+    const names = st.isDirectory()
+      ? fs.readdirSync(input).filter(f => /\.ggb$/i.test(f)).sort().map(f => path.join(input, f))
+      : a._;
+    const items = names.map(f => ({ buf: fs.readFileSync(f), name: path.basename(f).replace(/\.ggb$/i, '') }));
+    if (!items.length) { console.log('merge: no .ggb inputs found'); return; }
+    const out = a.out || a.o || path.join(dir, path.basename(st.isDirectory() ? input : dir) + '.gsp');
+    const r = convertManyToGsp(items);
+    fs.writeFileSync(out, r.out);
+    console.log('merged ' + items.length + ' .ggb -> ' + out + ' [' + r.dir + '] emitted=' + r.emitted);
+    return;
+  }
   const jobs = [];
   if (st.isDirectory()) {
     const outdir = a.outdir || a.out || a.o || path.join(input, 'converted');
@@ -55,6 +72,24 @@ function main() {
   for (const j of jobs) {
     try {
       const r = convertBuffer(fs.readFileSync(j.in), path.extname(j.in).toLowerCase(), a.to);
+      if (r.pages) {
+        // multi-page .gsp -> one .ggb per page, in a folder named after the file
+        const folder = j.out.replace(/\.(gsp|ggb)$/i, '');
+        fs.mkdirSync(folder, { recursive: true });
+        const used = new Set();
+        for (const p of r.pages) {
+          let base = String(p.name || 'page').replace(/[\\/:*?"<>|]/g, '_').trim() || 'page';
+          let nm = base;
+          for (let k = 2; used.has(nm); k++) nm = base + '_' + k;
+          used.add(nm);
+          fs.writeFileSync(path.join(folder, nm + '.ggb'), p.buf);
+        }
+        ok++;
+        report.push({ in: j.in, out: folder, dir: r.dir, pages: r.pages.length, objects: r.total, emitted: r.emitted });
+        if (!a.quiet) console.log((fail + ok) + ') ' + path.basename(j.in) + ' [' + r.dir + '] pages=' +
+          r.pages.length + ' -> ' + folder);
+        continue;
+      }
       fs.writeFileSync(j.out, r.out);
       ok++;
       const skipped = r.warnings.filter(w => /^skip /.test(w)).length;

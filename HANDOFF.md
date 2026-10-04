@@ -152,6 +152,15 @@
   3. 全树复测：**`emitted 228234 → 236087`（rate 56.06% → 57.99%，+7,853）**；
      `t15` 发射 10,858→11,668、`point on unsupported path` 4,641→3,853，其余为级联。
      `node test/smoke.js` 新增 1 条断言。
+- ✅ **本机续作（2026-10-04，第三十四轮）：多页支持（每页一个 .ggb / 多文件↔多页）。**
+  1. 读取器为每个对象记录 `section`（所属页），`meta.sections[i]` 补上 `ids`。
+  2. **正向**：`irToGgbPages(ir)` 把多页 `.gsp` 拆成**每页一个 `.ggb`**（`sectionIR` 会把该页依赖的跨页对象一并拉入）；
+     CLI 输出到以文件命名的文件夹 `<文件去扩展名>/<页名>.ggb`（页名做了文件名清洗、去重）。
+     实测 `map-projection3.gsp`→4 个、`example-15.gsp`→18 个；真机打开 `ok=True err=False`。
+  3. **反向**：`irListToGsp([{ir,name}])` 把多个 `.ggb` 合成**一个多页 `.gsp`**（每个输入一个 `tag 1100` section）；
+     CLI：`node bin/cli.js <ggb文件夹> --to gsp --merge [-o out.gsp]`（按文件名排序）。
+     实测 4 个 `.ggb` → 一个 `.gsp`，读回为 4 个 section（`page1:78/test:8/test2:8/test3:8`）。
+  4. `smoke`/`exprcov`/`emitstats` 无回归（280,730 / 70.16%）。
 - ✅ **本机续作（2026-10-04，第三十三轮）：`00005.gsp` 攻坚（一）——`t98` = 函数图线与路径的交点。**
   1. `00005.gsp` 是函数图线综合图：`t98`（`A/B/C/D1-D4/M`）是**函数图线与另一条路径（x/y 轴、另一函数、圆）的交点**，
      父表 `[路径1, t72 函数图线]`，2003 只有一个 0.0 参数。

@@ -292,13 +292,14 @@ function gspToIR(buf, opts) {
   // build per-scope lists and map raw -> ir
   const scopes = hasSections ? allSecs.map(s => s.objects) : [globalList];
   const rawToIR = new Map();
-  for (const list of scopes) {
+  scopes.forEach((list, si) => {
     list.forEach((raw, i) => {
       const ir = makeIR(raw, objects.length + 1, i + 1);
+      ir.section = si;                       // page index (0-based); pages exist only if hasSections
       objects.push(ir);
       rawToIR.set(raw, ir);
     });
-  }
+  });
   // resolve parents
   for (const list of scopes) {
     list.forEach((raw, i) => {
@@ -325,7 +326,13 @@ function gspToIR(buf, opts) {
     title: '',
     objects,
     warnings,
-    meta: { hasSections, sections: allSecs.map(s => ({ name: s.name, n: s.objects.length })) }
+    meta: {
+      hasSections,
+      sections: allSecs.map((s, si) => ({
+        name: s.name, n: s.objects.length,
+        ids: scopes[si].map(raw => rawToIR.get(raw).id)
+      }))
+    }
   };
 }
 
