@@ -5,7 +5,7 @@
 > **接手先跑（自检，项目根 = 本目录）**：
 > ```powershell
 > node test/smoke.js                    # 应输出 SMOKE PASSED（无需语料）
-> node tools/emitstats.js "<语料根>"    # 全树基线：objects=400149 emitted=277673 rate=69.39%（2026-10-05）
+> node tools/emitstats.js "<语料根>"    # 全树基线：objects=400149 emitted=277239 rate=69.28%（2026-10-05）
 > node tools/exprcov.js  "<语料根>"     # 2311 解码覆盖率 57079/57112 = 99.9%
 > ```
 >
@@ -158,6 +158,14 @@
   3. 全树复测：**`emitted 228234 → 236087`（rate 56.06% → 57.99%，+7,853）**；
      `t15` 发射 10,858→11,668、`point on unsupported path` 4,641→3,853，其余为级联。
      `node test/smoke.js` 新增 1 条断言。
+- ✅ **本机续作（2026-10-05，第四十轮）：跳过“无坐标无标签的 free 占位对象”。**
+  - 这类对象（如 `2011重庆中考第26题…` 的 `#1`）在 GSP 里没有坐标/标签/表达式，却常被别处**当点**引用
+    （`Translate(O_2,…)`、`Circle(A,O_2)`）。原来把它当**数值 0** 发射，导致 GeoGebra 报
+    `error in <expression>` 并出现 `O_2: 0 = 0` 退化圆锥、级联报错。
+  - 现改为**跳过**（“don't guess”），其依赖对象按既有级联规则一起丢弃。样本 `2011重庆中考第26题…` 的单文件
+    现已 `err=False`。覆盖率 69.39% → **69.28%**（−434，均为删除原本会导致 `0=0` 的占位对象）。
+  - 抽样 6 个语料文件：`err=True` 从 3 降到 2（余下为多页 `Sample` 的**单文件**产物——CLI 会拆成 19 页，页均干净；
+    以及 `圆滚动制作步骤.gsp`，是**另一族**错误，待查）。
 - ✅ **本机续作（2026-10-05，第三十九轮）：继续消除“打开文件失败”——类型守卫 + `00005` 四页全部干净。**
   1. **直线类命令的父级类型**：`Segment`/`Line`(line2pt)/`PerpendicularLine`/`Line`(parallel)/`AngleBisector`
      要求父级是**点**（`isPointish`），方向基准非函数（`isFunctionObject`）；坐标轴/单位点/函数图的原点必须是点。

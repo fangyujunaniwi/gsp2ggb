@@ -906,7 +906,7 @@ function planOf(o, byId) {
           warn: 'free number "' + o.label + '": value not stored in GSP, assumed 0' };
       if (o.label)
         return { elem: 'text', exprTpl: '"' + o.label.replace(/"/g, "'") + '"' };
-      return { elem: 'numeric', free: { value: 0, assumed: true }, warn: 'free value-less object assumed 0' };
+      return skip('value-less unlabeled free object (GSP page/origin placeholder)');
 
     case 'segment':
       if (P.length === 2 && isPointish(P[0]) && isPointish(P[1]))
