@@ -1125,22 +1125,25 @@ function planOf(o, byId) {
       return skip('point on unsupported path (falls back nowhere)');
     }
     case 'translateImage':
-      if (P.length === 3) return { elem: elemTypeOf(o, byId),
-        exprTpl: 'Translate(' + R(o.parents[0]) + ',Vector(' + R(o.parents[1]) + ',' + R(o.parents[2]) + '))',
-        args: o.parents };
-      return skip('translate needs preimage + 2 vector points');
+      // Translate(<object>, Vector(<Point>,<Point>)): GSP sometimes points the vector args at
+      // text objects (which emit Vector(text,text), rejected by GeoGebra) — skip those.
+      if (P.length === 3 && P[0] && P[0].kind !== 'text' && P[1] && P[1].kind !== 'text' && P[2] && P[2].kind !== 'text')
+        return { elem: elemTypeOf(o, byId),
+          exprTpl: 'Translate(' + R(o.parents[0]) + ',Vector(' + R(o.parents[1]) + ',' + R(o.parents[2]) + '))',
+          args: o.parents };
+      return skip('translate preimage/vector must not be text');
     case 'rotateImage':
-      if (P.length === 2 && o.params.length >= 3)
+      if (P.length === 2 && o.params.length >= 3 && P[0] && P[0].kind !== 'text' && P[1] && P[1].kind !== 'text')
         return { elem: elemTypeOf(o, byId),
           exprTpl: 'Rotate(' + R(o.parents[0]) + ',' + fmt(rotateAngleDeg(o)) + '\u00B0,' + R(o.parents[1]) + ')',
           args: o.parents };
-      return skip('rotate needs preimage+center+angle');
+      return skip('rotate preimage/centre must not be text');
     case 'dilateImage':
-      if (P.length === 2 && o.params.length >= 1)
+      if (P.length === 2 && o.params.length >= 1 && P[0] && P[0].kind !== 'text' && P[1] && P[1].kind !== 'text')
         return { elem: elemTypeOf(o, byId),
           exprTpl: 'Dilate(' + R(o.parents[0]) + ',' + fmt(o.params[0]) + ',' + R(o.parents[1]) + ')',
           args: o.parents };
-      return skip('dilation needs preimage+center+ratio');
+      return skip('dilation preimage/centre must not be text');
     case 'markedAngleRotate':
       // MarkedAngleRotation(center, A, B, C): rotate by the (dynamic) angle ∠ABC.
       if (P.length === 5)

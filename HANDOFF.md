@@ -5,7 +5,7 @@
 > **接手先跑（自检，项目根 = 本目录）**：
 > ```powershell
 > node test/smoke.js                    # 应输出 SMOKE PASSED（无需语料）
-> node tools/emitstats.js "<语料根>"    # 全树基线：objects=400149 emitted=277239 rate=69.28%（2026-10-05）
+> node tools/emitstats.js "<语料根>"    # 全树基线：objects=400149 emitted=276872 rate=69.19%（2026-10-05）
 > node tools/exprcov.js  "<语料根>"     # 2311 解码覆盖率 57079/57112 = 99.9%
 > ```
 >
@@ -158,6 +158,13 @@
   3. 全树复测：**`emitted 228234 → 236087`（rate 56.06% → 57.99%，+7,853）**；
      `t15` 发射 10,858→11,668、`point on unsupported path` 4,641→3,853，其余为级联。
      `node test/smoke.js` 新增 1 条断言。
+- ✅ **本机续作（2026-10-05，第四十二轮）：图像变换命令的向量/中心参数不能是文本。**
+  - `translateImage`/`rotateImage`/`dilateImage`（GSP 的平移/旋转/缩放像）原先无条件发射
+    `Translate(<obj>,Vector(<a>,<b>))` 等；当 `a`/`b` 是**文本对象**时会发射 `Vector(text,text)`，GeoGebra 报错。
+  - 改为：只要前置对象或向量/中心参数是文本就**跳过**。（不用 `isPointish`——那会误伤合法的仿射像，实测少 ~2000 对象。）
+  - 覆盖率 69.28% → **69.19%**（−367，均为原本会报错的发射）。
+  - 12 文件抽样（多页按页拆分，46 个 `.ggb`）：**45 个干净**，剩 1 个（`y=Asin(wx+v).gsp` 的文本排版图）
+    仍有 `Vector(seg,seg)` 之类的仿射像遗留，属更深的一族。
 - ✅ **本机续作（2026-10-05，第四十一轮）：文本对象里的引号转义导致报错。**
   - `FixedText`（tag 2300）消息里的 `"` 原来被转义成 `\"` 写入 `<expression>`，GeoGebra **不接受**该转义，
     整条文本报 “error in <expression>”（样本 `圆滚动制作步骤.gsp` 的步骤文字）。
