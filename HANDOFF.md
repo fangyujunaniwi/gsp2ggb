@@ -5,7 +5,7 @@
 > **接手先跑（自检，项目根 = 本目录）**：
 > ```powershell
 > node test/smoke.js                    # 应输出 SMOKE PASSED（无需语料）
-> node tools/emitstats.js "<语料根>"    # 全树基线：objects=400149 emitted=276872 rate=69.19%（2026-10-05）
+> node tools/emitstats.js "<语料根>"    # 全树基线：objects=400149 emitted=276961 rate=69.21%（2026-10-05）
 > node tools/exprcov.js  "<语料根>"     # 2311 解码覆盖率 57079/57112 = 99.9%
 > ```
 >
@@ -158,6 +158,19 @@
   3. 全树复测：**`emitted 228234 → 236087`（rate 56.06% → 57.99%，+7,853）**；
      `t15` 发射 10,858→11,668、`point on unsupported path` 4,641→3,853，其余为级联。
      `node test/smoke.js` 新增 1 条断言。
+- ✅ **本机续作（2026-10-05，第四十三轮）：内嵌图片（GSP Picture）支持（第一版）。**
+  - 破解 GSP 图片编码：**`t99` = 图片对象**（`tag2002` = 1 个锚点父级；`tag2003` = [缩放,缩放,旋转]；
+    **`tag2316` = 图片 宽×高**；PNG 原始字节在**文档级 `tag1300`**：8 字节头[宽][高]+PNG，按序对应）。
+    这也解释了 `00005` 的 `784×736`——`tag2316` 是尺寸记录（非图片对象时用作 5.06 的分页记录）。
+  - 读取器：`TYPES[99]='image'`；`tag2316` 在 t99 内记为 `dims`；`meta.images` 收集全部内嵌 PNG；
+    图片按出现顺序编号；`sectionName` 去掉了内嵌 NUL（否则多页输出文件名带 NUL 导致 CLI 崩溃）。
+  - 写出器：发射 GeoGebra `<element type="image">`：`<file name="images/imageN.png"/>` +
+    `<startPoint number="0" exp="锚点"/>` + `<startPoint number="1" exp="锚点+(w/u,-h/u)"/>`（绝对/相对角点，
+    经用户真值 `refimg.ggb` 验证 GeoGebra 5.4 接受），并把 PNG 写进 `.ggb` 的 `images/`。
+  - 验证：`Sample.gsp` 首页含两张图片，产物 `err=False`、zip 内有 `images/image1.png`+`image2.png`；
+    用户 `Sample` 19 页 + `00005` 4 页仍 **0 报错**；覆盖率 69.19% → **69.21%**。
+  - **待办（第二批）**：`ImageBetweenPoints`（2 父级）与自由 `Image`（0 父级）变体；以及**变换副本（“继承”）**
+    —— `translateImage/rotateImage/dilateImage/reflectImage` 的前置是图片时，应发射变换后的图片。
 - ✅ **本机续作（2026-10-05，第四十二轮）：图像变换命令的向量/中心参数不能是文本。**
   - `translateImage`/`rotateImage`/`dilateImage`（GSP 的平移/旋转/缩放像）原先无条件发射
     `Translate(<obj>,Vector(<a>,<b>))` 等；当 `a`/`b` 是**文本对象**时会发射 `Vector(text,text)`，GeoGebra 报错。

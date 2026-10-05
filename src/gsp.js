@@ -57,9 +57,11 @@ function strAt(pay, o) {
 
 // section name from tag 1100 payload: UTF-8 or GBK text (NUL padded), no length prefix
 function sectionName(pay) {
-  const s = pay.toString('utf8').replace(/\0+$/, '');
+  // Section names can contain embedded NULs (mojibake padding); strip them all so the name is
+  // usable as a file/folder name (the CLI derives output paths from it).
+  const s = pay.toString('utf8').replace(/\0/g, '').trim();
   if (!s || /[\uFFFD]/.test(s)) {
-    try { return new TextDecoder('gbk').decode(pay).replace(/\0+$/, ''); } catch (e) { return s; }
+    try { return new TextDecoder('gbk').decode(pay).replace(/\0/g, '').trim(); } catch (e) { return s; }
   }
   return s;
 }
@@ -160,6 +162,7 @@ const TYPES = {
   94: { k: 'pathParam' },       // point's relative position along its host path (PointOnObject)
   95: { k: 'pointAtParam' },    // point on a path at a parameter given by the other parent
   98: { k: 'curveIntersect' },  // intersection of a function graph with another path
+  99: { k: 'image' },           // GSP Picture: parents[0] = anchor point; tag2316 = WxH; PNG in tag1300
   101:{ k: 'customXformPt' },   // custom-transformation image of a point: [P', X, P, ..., P'] (P->X substitution)
   102:{ k: 'customXform' },     // custom-transformation image of a non-point (same parent layout)
   113:{ k: 'angle' },           // 3 points, middle = vertex (geometric angle)
@@ -193,13 +196,23 @@ function gspToIR(buf, opts) {
 
   for (const r of recs) {
     if (r.tag === 1100) { newSection(sectionName(r.pay)); continue; }
-    if (r.tag === 2316 && !has1100) { pendingBreak = true; continue; }
+    if (r.tag === 2316) {
+      // In a t99 (picture) object, tag 2316 carries the image's pixel dimensions.  In any other
+      // object (and only in files without tag-1100 sections) it is GSP 5.06's page-boundary
+      // record: the next object starts a new page.
+      if (cur && cur.type === 99 && r.pay.length >= 8) {
+        cur.dims = { w: r.pay.readUInt32LE(0), h: r.pay.readUInt32LE(4) };
+      } else if (!has1100) {
+        pendingBreak = true;
+      }
+      continue;
+    }
     if (r.tag === 2000) {
       if (pendingBreak) { pendingBreak = false; newSection(''); }
       cur = {
         type: r.pay.readUInt16LE(0),
         hdr: Buffer.from(r.pay),
-        parents: [], label: '', labelRec: null, coords: null, params: [],
+        parents: [], label: '', labelRec: null, coords: null, params: [], dims: null,
         recs: []
       };
       curSec.objects.push(cur);
@@ -240,6 +253,14 @@ function gspToIR(buf, opts) {
   // ---- assemble IR objects with resolved parents ----
   const objects = [];
   const warnings = [];
+  // Embedded pictures: each tag-1300 payload is [u32 width][u32 height][PNG bytes]; t99 objects
+  // reference them in order.
+  const docImages = recs.filter(r => r.tag === 1300).map(r => ({
+    w: r.pay.length >= 8 ? r.pay.readUInt32LE(0) : 0,
+    h: r.pay.length >= 8 ? r.pay.readUInt32LE(4) : 0,
+    data: r.pay.length >= 8 ? r.pay.subarray(8) : r.pay
+  }));
+  let imgCounter = 0;
   const allSecs = sections.filter(s => s.objects.length);
   const globalList = [];
   for (const s of allSecs) for (const o of s.objects) globalList.push(o);
@@ -264,9 +285,11 @@ function gspToIR(buf, opts) {
       localIndex: localIdx, // ordinal within resolution scope
       coords: raw.coords,   // GSP logical, y-down
       params: raw.params,
+      dims: raw.dims,
       style: styleFromHdr(raw.hdr),
       _raw: raw
     };
+    if (raw.type === 99) ir.imageIndex = imgCounter++;
     // Action buttons (t62) carry a 24-byte tag-2310 record: 3 u32 of framing
     // (tag / payload length / field offset) followed by six u16 fields.  Field 0
     // (offset 12) is the button kind, fields 4/5 (offsets 20/22) are the button's
@@ -336,6 +359,7 @@ function gspToIR(buf, opts) {
     warnings,
     meta: {
       hasSections,
+      images: docImages,
       sections: allSecs.map((s, si) => ({
         name: s.name, n: s.objects.length,
         ids: s.objects.map(raw => rawToIR.get(raw).id)

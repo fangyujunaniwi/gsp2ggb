@@ -961,6 +961,18 @@ function planOf(o, byId) {
     }
     case 'coordsys':
       return skip('coordinate system (internal; not a GeoGebra object)');
+    case 'image': {
+      // GSP Picture: anchored on a point (parents[0]); tag2316 = pixel size.  Corner 0 is the
+      // anchor, corner 1 = anchor + size mapped to GeoGebra units (y flips).
+      const a = P[0];
+      if (!a || !isPointish(a)) return skip('picture needs a point anchor');
+      if (!o.dims) return skip('picture without dimensions');
+      const u = frame ? frame.uxLen : SCALE;
+      const dx = o.dims.w / u, dy = o.dims.h / u;
+      return { elem: 'image', args: [o.parents[0]], imageIndex: o.imageIndex,
+        anchorId: o.parents[0], dims: o.dims, dx, dy,
+        warn: 'GSP picture anchored on a point' };
+    }
     case 'plotPoint': {
       if (P.length < 1 || o.params.length < 2) return skip('plot point needs coord sys + (x,y)');
       const cs = coordSysRef(P[0], byId, R);
@@ -1878,6 +1890,7 @@ function irToGgb(ir) {
   const warnings = (ir.warnings || []).slice();
   const emitted = [];
   const coordsAll = [];
+  const usedImages = new Set();
   // Recursively build a button's click script.  A simultaneous button inlines the
   // scripts of the buttons it triggers (GSP SimultaneousButton.handleClick).
   const buildBtnScript = (p, depth) => {
@@ -1925,6 +1938,24 @@ function irToGgb(ir) {
       bi += '\t<absoluteScreenLocation x="' + Math.round(p.btn.x) + '" y="' + Math.round(p.btn.y) + '"/>\n';
       bi += '\t<ggbscript val="' + xmlEsc(script).replace(/\n/g, '&#10;') + '"/>\n';
       emitted.push('<element type="button" label="' + xmlEsc(lab) + '">\n' + bi + '</element>');
+      continue;
+    }
+    if (p.elem === 'image') {
+      // GSP picture -> GeoGebra <image>: two corners, corner 0 = the anchor point (kept dynamic),
+      // corner 1 = anchor + pixel size in GeoGebra units.
+      const anchor = labels.get(p.anchorId) || 'undefined_1';
+      const c1 = '(' + anchor + ')+(' + fmt(p.dx) + ',' + fmt(-p.dy) + ')';
+      let ii = '';
+      ii += '\t<file name="images/image' + ((p.imageIndex | 0) + 1) + '.png"/>\n';
+      ii += '\t<inBackground val="false"/>\n';
+      ii += '\t<startPoint number="0" exp="' + xmlEsc(anchor) + '"/>\n';
+      ii += '\t<startPoint number="1" exp="' + xmlEsc(c1) + '"/>\n';
+      ii += '\t<show object="true" label="false"/>\n';
+      ii += '\t<objColor r="0" g="0" b="0" alpha="1"/>\n';
+      ii += '\t<layer val="0"/>\n';
+      ii += '\t<labelMode val="0"/>\n';
+      emitted.push('<element type="image" label="' + xmlEsc(lab) + '">\n' + ii + '</element>');
+      usedImages.add(p.imageIndex | 0);
       continue;
     }
     let exprLine = '';
@@ -1993,8 +2024,14 @@ function irToGgb(ir) {
     yZero = GEO_H / 2 + cy * yscale;
   }
   const xml = header(ir.title, xZero, yZero, scale, yscale) + emitted.join('\n') + '\n</construction>\n</geogebra>\n';
-  const buf = zip([{ name: 'geogebra.xml', data: Buffer.from(xml, 'utf8') }]);
-  return { buf, xml, warnings, stats: { planned: emitted.length, total: ir.objects.length } };
+  const entries = [{ name: 'geogebra.xml', data: Buffer.from(xml, 'utf8') }];
+  const srcImgs = (ir.meta && ir.meta.images) || [];
+  for (const idx of usedImages) {
+    const im = srcImgs[idx];
+    if (im) entries.push({ name: 'images/image' + (idx + 1) + '.png', data: Buffer.from(im.data) });
+  }
+  const buf = zip(entries);
+  return { buf, xml, warnings, stats: { planned: emitted.length, total: ir.objects.length }, images: [...usedImages] };
 }
 
 // ---------- reader: .ggb -> IR ----------
