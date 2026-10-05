@@ -1601,7 +1601,7 @@ function planOf(o, byId) {
     }
     case 'text': {
       if (o.msg) {                       // FixedText: message stored inline (tag 2300)
-        const s = String(o.msg).replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+        const s = String(o.msg).replace(/\\/g, '\\\\').replace(/"/g, "'")
           .replace(/[\r\n]+/g, ' ');
         return { elem: 'text', exprTpl: '"' + s + '"' };
       }
