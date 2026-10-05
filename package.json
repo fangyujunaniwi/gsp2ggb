@@ -1,10 +1,10 @@
 {
-  "name": "gsp-conv",
+  "name": "gsp2ggb",
   "version": "0.1.0",
   "private": true,
   "description": "Bidirectional converter between The Geometer's Sketchpad (.gsp) and GeoGebra (.ggb)",
   "bin": {
-    "gsp-conv": "bin/cli.js"
+    "gsp2ggb": "bin/cli.js"
   },
   "main": "src/ggb.js",
   "scripts": {

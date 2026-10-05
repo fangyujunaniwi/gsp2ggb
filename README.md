@@ -1,4 +1,4 @@
-# gsp-conv — 几何画板 (.gsp) ⇄ GeoGebra (.ggb)
+# gsp2ggb — 几何画板 (.gsp) ⇄ GeoGebra (.ggb)
 
 中文 | [English](README_EN.md)
 
@@ -121,9 +121,20 @@ A：不需要。转换完全在本机进行，不上传任何文件。
 |---|---|
 | `README.md` / `README_EN.md` | 本页：面向普通用户的说明（中 / 英） |
 | [`Tech_Details.md`](Tech_Details.md) | 技术细节：类型语义、容器格式、真值来源、已知限制、开发工具（中文） |
-| [`TYPE_TABLE.md`](TYPE_TABLE.md) | 全部 GSP 对象类型（`tXX`）速查表 |
+| [`TYPE_TABLE.md`](TYPE_TABLE.md) | 全部 GSP 对象类型（`tXX`）与二进制记录（tag）速查表 |
 | [`HANDOFF.md`](HANDOFF.md) | 开发交接：进度、覆盖率基线、下一步（中文） |
 | [`SETUP.md`](SETUP.md) | 部署：本机路径、环境变量、打包交付（中文） |
+
+## 免责声明
+
+- 本项目是**非官方**的开源工具，与 **Pearson**（几何画板 *The Geometer's Sketchpad*）及 **GeoGebra** 官方
+  **没有任何关联**，也未获其授权、赞助或背书。
+- “几何画板 / The Geometer's Sketchpad (GSP)”“GeoGebra”等名称与商标归各自所有者所有。
+- 本工具**只做文件格式转换**，**不包含、也不分发**上述任何软件本体。使用前请自行合法获取相关软件，
+  并遵守其许可协议。
+- 转换结果**不保证**与原课件完全一致或可用（很多对象会被有意跳过，见上文「支持与不转换」）。
+  请务必在转换后自行检查；因使用本工具而产生的任何直接或间接损失，作者**不承担责任**。
+- 请仅转换**你拥有合法权利**的文件，切勿用于侵犯他人版权或违反许可的用途。
 
 ## 许可
 本项目采用 **MIT 许可**，见 [`LICENSE`](LICENSE)。

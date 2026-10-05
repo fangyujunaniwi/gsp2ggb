@@ -1,4 +1,4 @@
-# gsp-conv — The Geometer's Sketchpad (.gsp) ⇄ GeoGebra (.ggb)
+# gsp2ggb — The Geometer's Sketchpad (.gsp) ⇄ GeoGebra (.ggb)
 
 [中文](README.md) | English
 
@@ -135,9 +135,22 @@ No. Everything runs locally and no file is uploaded.
 |---|---|
 | `README.md` / `README_EN.md` | This page — user guide (Chinese / English) |
 | [`Tech_Details.md`](Tech_Details.md) | Technical details: type semantics, container format, ground truth, known limitations, dev tools (**in Chinese**) |
-| [`TYPE_TABLE.md`](TYPE_TABLE.md) | Quick reference for every GSP object type (`tXX`) |
+| [`TYPE_TABLE.md`](TYPE_TABLE.md) | Quick reference for every GSP object type (`tXX`) and binary record (tag) |
 | [`HANDOFF.md`](HANDOFF.md) | Developer hand-off: progress, coverage baseline, next steps (Chinese) |
 | [`SETUP.md`](SETUP.md) | Deployment: local paths, environment variables, packaging (Chinese) |
+
+## Disclaimer
+
+- This is an **unofficial** open-source tool. It is **not affiliated with, authorized, sponsored or
+  endorsed by** Pearson (*The Geometer's Sketchpad*) or the GeoGebra project.
+- "The Geometer's Sketchpad (GSP)", "GeoGebra" and their names/logos belong to their respective owners.
+- This tool **performs file-format conversion only** and **does not include or distribute** any of the
+  above software. Obtain those programs legally and comply with their licences.
+- Conversion results are **not guaranteed** to match the original document exactly or to be usable
+  (many objects are intentionally skipped — see "Supported vs. intentionally not converted" above).
+  Always review the output yourself. The author accepts **no liability** for any loss arising from
+  the use of this tool.
+- Only convert files you have the **legal right** to use; do not use this tool for infringement.
 
 ## License
 **MIT** — see [`LICENSE`](LICENSE).
