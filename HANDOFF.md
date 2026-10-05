@@ -5,7 +5,7 @@
 > **接手先跑（自检，项目根 = 本目录）**：
 > ```powershell
 > node test/smoke.js                    # 应输出 SMOKE PASSED（无需语料）
-> node tools/emitstats.js "<语料根>"    # 全树基线：objects=400149 emitted=283056 rate=70.74%（2026-10-04）
+> node tools/emitstats.js "<语料根>"    # 全树基线：objects=400149 emitted=277673 rate=69.39%（2026-10-05）
 > node tools/exprcov.js  "<语料根>"     # 2311 解码覆盖率 57079/57112 = 99.9%
 > ```
 >
@@ -158,6 +158,17 @@
   3. 全树复测：**`emitted 228234 → 236087`（rate 56.06% → 57.99%，+7,853）**；
      `t15` 发射 10,858→11,668、`point on unsupported path` 4,641→3,853，其余为级联。
      `node test/smoke.js` 新增 1 条断言。
+- ✅ **本机续作（2026-10-05，第三十九轮）：继续消除“打开文件失败”——类型守卫 + `00005` 四页全部干净。**
+  1. **直线类命令的父级类型**：`Segment`/`Line`(line2pt)/`PerpendicularLine`/`Line`(parallel)/`AngleBisector`
+     要求父级是**点**（`isPointish`），方向基准非函数（`isFunctionObject`）；坐标轴/单位点/函数图的原点必须是点。
+     否则**跳过**（不再发射 `Line(f,f+(1,0))`、`Segment(线段,点)`、`PerpendicularLine(f,…)`）。
+  2. **函数图（t72）**必须挂在真正的函数计划上（`elem==='function'`）。
+  3. **公式（t48/t71/t78）**若按值引用线段/圆/弧/直线（GSP 的“度量值”语义，如把线段当长度）→ 跳过，
+     不再发射 `seg * x`（`decodedRefsUsable`）。
+  - 结果：`00005.gsp` 的**整份单文件**与 **4 页**全部 `err=False`；`Sample.gsp` 19 页仍全 `err=False`；
+    `smoke` 通过；覆盖率 70.79% → **69.39%**（跳过的都是原本会在 GeoGebra 里报错的对象）。
+  - **已知残留（语料其它族）**：退化圆锥被发射成 `0 = 0`，级联导致 `Translate`/`Dilate` 报错
+    （样本：`2011重庆中考第26题(重叠部分制作步骤).gsp`、`圆滚动制作步骤.gsp`）。这是下一批要处理的族。
 - ✅ **本机续作（2026-10-04，第三十八轮）：修复生成的 `.ggb` 在 GeoGebra 里“打开文件失败”的四类非法表达式。**
   > 用户反馈“打开都报错”。GeoGebra 对非法表达式只弹“打开文件失败 / error in <expression>”对话框，
   > 但文件仍能被 `ggbcheck` 判为能打开，所以之前一路漏检。逐条用最小 `.ggb` 探针定位（见 `ref-ctrl/ggb-syntax/README.md`）：

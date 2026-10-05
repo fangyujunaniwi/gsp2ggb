@@ -22,6 +22,28 @@ function decodedExpr(o) {
 }
 // Does the template use the independent variable x (i.e. is it a function, not a number)?
 function usesX(tpl) { return /(^|[^A-Za-z0-9_])x([^A-Za-z0-9_]|$)/.test(tpl); }
+// An object whose definition is a function of x (t71/t72/t78) is not a straight, so it can
+// never be the base of PerpendicularLine/Line/etc.  Used to avoid `PerpendicularLine(f,...)`.
+function isFunctionObject(o) {
+  if (!o) return false;
+  const d = decodedExpr(o);
+  return !!(d && usesX(d.exprTpl));
+}
+// A decoded formula may reference a segment/circle/arc/line by label, meaning its *measured*
+// value in GSP (e.g. a segment's length) — which we don't model, and which would emit e.g.
+// `seg * x` (invalid).  Points are left alone (they may be used via x()/y()).  Returns false
+// when the expression must be skipped.
+const MEASURE_GEOM_KINDS = new Set(['segment', 'circleOn', 'circleRadiusObj', 'circleRadiusSeg',
+  'circleRadiusPoint', 'arc', 'arcCenter', 'arc3Points', 'polygon', 'line2pt', 'perpLine',
+  'parallelLine', 'angleBisector', 'axis']);
+function decodedRefsUsable(dec, byId) {
+  if (!dec || !dec.args) return true;
+  for (const id of dec.args) {
+    const q = byId.get(id);
+    if (q && MEASURE_GEOM_KINDS.has(q.kind)) return false;
+  }
+  return true;
+}
 // Evaluate a template that is a plain constant (number / pi / e / unary minus / ^).
 // Returns a JS number, or null if it contains anything else.
 function constValue(tpl) {
@@ -76,6 +98,8 @@ const POINT_KINDS = new Set(['free', 'midpoint', 'pointOnPath', 'intersectLL',
   'pointAtParam', 'curveIntersect', 'customXformPt']);
 const LINE_KINDS = new Set(['line2pt', 'perpLine', 'parallelLine', 'angleBisector', 'axis']);
 const SEG_KINDS = new Set(['segment']);
+// Anything GeoGebra accepts as the straight base of Line()/PerpendicularLine()/etc.
+const STRAIGHT_KINDS = new Set(['segment', 'line2pt', 'perpLine', 'parallelLine', 'angleBisector', 'axis']);
 const XFORM_KINDS = new Set(['translateImage', 'rotateImage', 'dilateImage', 'reflectImage',
   'markedAngleRotate', 'measuredAngleRotate', 'segRatioDilate', 'markedRatioDilate', 'implicitRotate',
   'fixedAngleMarkedDistance']);
@@ -885,11 +909,13 @@ function planOf(o, byId) {
       return { elem: 'numeric', free: { value: 0, assumed: true }, warn: 'free value-less object assumed 0' };
 
     case 'segment':
-      if (P.length === 2) return { elem: 'segment', exprTpl: 'Segment(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ')', args: o.parents };
-      return skip('segment needs 2 parents');
+      if (P.length === 2 && isPointish(P[0]) && isPointish(P[1]))
+        return { elem: 'segment', exprTpl: 'Segment(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ')', args: o.parents };
+      return skip('segment needs 2 points');
     case 'line2pt':
-      if (P.length === 2) return { elem: 'line', exprTpl: 'Line(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ')', args: o.parents };
-      return skip('line needs 2 parents');
+      if (P.length === 2 && isPointish(P[0]) && isPointish(P[1]))
+        return { elem: 'line', exprTpl: 'Line(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ')', args: o.parents };
+      return skip('line needs 2 points');
     case 'midpoint':
       if (P.length === 2) return { elem: 'point', exprTpl: 'Midpoint(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ')', args: o.parents };
       if (P.length === 1) return { elem: 'point', exprTpl: 'Midpoint(' + R(o.parents[0]) + ')', args: o.parents };
@@ -914,12 +940,12 @@ function planOf(o, byId) {
         warn: (cId === o.parents[1]) ? 'circle centre was the second parent (radius first)' : undefined };
     }
     case 'perpLine':
-      if (P.length === 2) return { elem: 'line', exprTpl: 'PerpendicularLine(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ')', args: o.parents };
-      return skip('perp line needs 2 parents');
+      if (P.length === 2 && isPointish(P[0]) && !isFunctionObject(P[1])) return { elem: 'line', exprTpl: 'PerpendicularLine(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ')', args: o.parents };
+      return skip('perp line: needs a point and a non-function base');
     case 'parallelLine':
       // GeoGebra has no "ParallelLine" command: the parallel through a point is Line(<Point>,<Line>).
-      if (P.length === 2) return { elem: 'line', exprTpl: 'Line(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ')', args: o.parents };
-      return skip('parallel line needs 2 parents');
+      if (P.length === 2 && isPointish(P[0]) && !isFunctionObject(P[1])) return { elem: 'line', exprTpl: 'Line(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ')', args: o.parents };
+      return skip('parallel line: needs a point and a non-function base');
     case 'angleBisector':
       if (P.length === 3) return { elem: 'line', exprTpl: 'AngleBisector(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ',' + R(o.parents[2]) + ')', args: o.parents };
       return skip('bisector needs 3 parents');
@@ -1237,11 +1263,12 @@ function planOf(o, byId) {
       if (o.params.length >= 1) {
         const org = unitPointOrigin(o, byId);
         const u = frame ? frame.uxLen : SCALE;
-        if (org) return { elem: 'point', exprTpl: '(' + R(org) + ') + (' + fmt(o.params[0] / u) + ',0)', args: [org] };
+        if (org != null && isPointish(byId.get(org)))
+          return { elem: 'point', exprTpl: '(' + R(org) + ') + (' + fmt(o.params[0] / u) + ',0)', args: [org] };
       }
       return skip('unit point needs origin+dx');
     case 'offsetPoint':
-      if (P.length >= 1 && o.params.length >= 2)
+      if (P.length >= 1 && isPointish(P[0]) && o.params.length >= 2)
         return { elem: 'point',
           exprTpl: '(' + R(o.parents[0]) + ') + (' + fmt(o.params[0] / SCALE) + ',' + fmt(-o.params[1] / SCALE) + ')',
           args: [o.parents[0]], warn: 'offset point (t17): direction convention assumed y-down' };
@@ -1260,7 +1287,7 @@ function planOf(o, byId) {
         }
         const org = unitPointOrigin(o, byId);
         const s = unitScaleOf(o, byId, 0);
-        if (org && s != null) {
+        if (org != null && isPointish(byId.get(org)) && s != null) {
           const u = frame ? frame.uyLen : SCALE;
           return { elem: 'point', exprTpl: '(' + R(org) + ') + (0,' + fmt(s / u) + ')', args: [org] };
         }
@@ -1581,6 +1608,8 @@ function planOf(o, byId) {
       {
         const dec = decodedExpr(o);      // t48 "Calculate" object: a stored numeric/functional expression
         if (dec) {
+          if (!decodedRefsUsable(dec, byId))
+            return skip('formula references a segment/circle by value (measure semantics not modelled)');
           if (usesX(dec.exprTpl)) return { elem: 'function', exprTpl: dec.exprTpl, args: dec.args };
           return { elem: 'numeric', exprTpl: dec.exprTpl, args: dec.args };
         }
@@ -1651,15 +1680,15 @@ function planOf(o, byId) {
         // a function referencing the same definition (kept so the object count survives).
         const fn = o.parents && byId.get(o.parents[0]);
         const fp = fn ? planOf(fn, byId) : null;
-        if (fp && !fp.skip && fp.exprTpl)
+        if (fp && !fp.skip && fp.elem === 'function' && fp.exprTpl)
           return { elem: 'function', exprTpl: fp.exprTpl, args: fp.args || [],
             warn: 'function plot (graph of its function)' };
         return skip('function plot without an emittable function');
       }
       if (o.srcType === 71 || o.srcType === 78) {
         const dec = decodedExpr(o);
-        if (dec) return { elem: 'function', exprTpl: dec.exprTpl, args: dec.args };
-        return skip('function definition (tag 2311) not decodable');
+        if (dec && decodedRefsUsable(dec, byId)) return { elem: 'function', exprTpl: dec.exprTpl, args: dec.args };
+        return skip('function definition (tag 2311) not decodable / geometry-valued refs');
       }
       // unknown type
       if (o.coords) {
@@ -1903,6 +1932,9 @@ function irToGgb(ir) {
       // them as "<label>(x)=..." so GeoGebra keeps the function and draws its graph.
       if (p.elem === 'function' && !usesX(exp)) exp = lab + '(x)=' + exp;
       exprLine = '<expression label="' + xmlEsc(lab) + '" exp="' + xmlEsc(exp) + '" />\n';
+      if (process.env.GSP_DUMP_EXPR)
+        console.error('#' + o.id + ' t' + o.srcType + ' ' + o.kind + ' lab=' + lab +
+          ' args=' + JSON.stringify(p.args || []) + ' exp=' + exp);
     }
     let inner = '';
     // A dependent number is a GSP measurement read-out (slope / length / angle / ratio ...).
