@@ -962,16 +962,22 @@ function planOf(o, byId) {
     case 'coordsys':
       return skip('coordinate system (internal; not a GeoGebra object)');
     case 'image': {
-      // GSP Picture: anchored on a point (parents[0]); tag2316 = pixel size.  Corner 0 is the
-      // anchor, corner 1 = anchor + size mapped to GeoGebra units (y flips).
-      const a = P[0];
-      if (!a || !isPointish(a)) return skip('picture needs a point anchor');
+      // GSP Picture.  1 parent  = anchored on a point (corner 1 = point + pixel size);
+      //                2 parents = the two corner points;
+      //                3 parents = three corner points.
       if (!o.dims) return skip('picture without dimensions');
       const u = frame ? frame.uxLen : SCALE;
       const dx = o.dims.w / u, dy = o.dims.h / u;
-      return { elem: 'image', args: [o.parents[0]], imageIndex: o.imageIndex,
-        anchorId: o.parents[0], dims: o.dims, dx, dy,
-        warn: 'GSP picture anchored on a point' };
+      if (o.parents.length === 1 && isPointish(P[0]))
+        return { elem: 'image', args: [o.parents[0]], imageIndex: o.imageIndex,
+          anchorId: o.parents[0], dx, dy, warn: 'GSP picture anchored on a point' };
+      if (o.parents.length === 2 && isPointish(P[0]) && isPointish(P[1]))
+        return { elem: 'image', args: o.parents, imageIndex: o.imageIndex,
+          corners: o.parents, warn: 'GSP picture between two points' };
+      if (o.parents.length === 3 && isPointish(P[0]) && isPointish(P[1]) && isPointish(P[2]))
+        return { elem: 'image', args: o.parents, imageIndex: o.imageIndex,
+          corners: o.parents, warn: 'GSP picture across three points' };
+      return skip('picture: unsupported corner layout');
     }
     case 'plotPoint': {
       if (P.length < 1 || o.params.length < 2) return skip('plot point needs coord sys + (x,y)');
@@ -1941,15 +1947,21 @@ function irToGgb(ir) {
       continue;
     }
     if (p.elem === 'image') {
-      // GSP picture -> GeoGebra <image>: two corners, corner 0 = the anchor point (kept dynamic),
-      // corner 1 = anchor + pixel size in GeoGebra units.
-      const anchor = labels.get(p.anchorId) || 'undefined_1';
-      const c1 = '(' + anchor + ')+(' + fmt(p.dx) + ',' + fmt(-p.dy) + ')';
+      // GSP picture -> GeoGebra <image>.  Corners: either explicit points, or one anchor point
+      // plus an offset of the picture's pixel size (in GeoGebra units, y flips).
       let ii = '';
       ii += '\t<file name="images/image' + ((p.imageIndex | 0) + 1) + '.png"/>\n';
       ii += '\t<inBackground val="false"/>\n';
-      ii += '\t<startPoint number="0" exp="' + xmlEsc(anchor) + '"/>\n';
-      ii += '\t<startPoint number="1" exp="' + xmlEsc(c1) + '"/>\n';
+      if (p.corners) {
+        p.corners.forEach((cid, k) => {
+          ii += '\t<startPoint number="' + k + '" exp="' + xmlEsc(labels.get(cid) || 'undefined_1') + '"/>\n';
+        });
+      } else {
+        const anchor = labels.get(p.anchorId) || 'undefined_1';
+        ii += '\t<startPoint number="0" exp="' + xmlEsc(anchor) + '"/>\n';
+        ii += '\t<startPoint number="1" exp="' +
+          xmlEsc('(' + anchor + ')+(' + fmt(p.dx) + ',' + fmt(-p.dy) + ')') + '"/>\n';
+      }
       ii += '\t<show object="true" label="false"/>\n';
       ii += '\t<objColor r="0" g="0" b="0" alpha="1"/>\n';
       ii += '\t<layer val="0"/>\n';

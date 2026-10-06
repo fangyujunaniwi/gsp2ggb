@@ -163,6 +163,8 @@ const TYPES = {
   95: { k: 'pointAtParam' },    // point on a path at a parameter given by the other parent
   98: { k: 'curveIntersect' },  // intersection of a function graph with another path
   99: { k: 'image' },           // GSP Picture: parents[0] = anchor point; tag2316 = WxH; PNG in tag1300
+  85: { k: 'image' },           // GSP Picture "between 2 points": parents = two corner points
+  100: { k: 'image' },          // GSP Picture (3 points / 3 corners)
   101:{ k: 'customXformPt' },   // custom-transformation image of a point: [P', X, P, ..., P'] (P->X substitution)
   102:{ k: 'customXform' },     // custom-transformation image of a non-point (same parent layout)
   113:{ k: 'angle' },           // 3 points, middle = vertex (geometric angle)
@@ -200,7 +202,7 @@ function gspToIR(buf, opts) {
       // In a t99 (picture) object, tag 2316 carries the image's pixel dimensions.  In any other
       // object (and only in files without tag-1100 sections) it is GSP 5.06's page-boundary
       // record: the next object starts a new page.
-      if (cur && cur.type === 99 && r.pay.length >= 8) {
+      if (cur && (cur.type === 99 || cur.type === 85 || cur.type === 100) && r.pay.length >= 8) {
         cur.dims = { w: r.pay.readUInt32LE(0), h: r.pay.readUInt32LE(4) };
       } else if (!has1100) {
         pendingBreak = true;
