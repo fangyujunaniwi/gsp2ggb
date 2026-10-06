@@ -95,7 +95,7 @@ function toGsp(c) {                 // ggb -> gsp logical (y-down)
 const POINT_KINDS = new Set(['free', 'midpoint', 'pointOnPath', 'intersectLL',
   'intersectLC1', 'intersectLC2', 'intersectCC1', 'intersectCC2', 'foot', 'offsetPoint',
   'unitX', 'squareUnitY', 'rectUnitY', 'rotateImage', 'dilateImage', 'translateImage', 'plotPoint', 'plotXY',
-  'pointAtParam', 'curveIntersect', 'customXformPt']);
+  'pointAtParam', 'curveIntersect', 'customXformPt', 'macro']);
 const LINE_KINDS = new Set(['line2pt', 'perpLine', 'parallelLine', 'angleBisector', 'axis']);
 const SEG_KINDS = new Set(['segment']);
 // Anything GeoGebra accepts as the straight base of Line()/PerpendicularLine()/etc.
@@ -1720,6 +1720,17 @@ function planOf(o, byId) {
         const dec = decodedExpr(o);
         if (dec && decodedRefsUsable(dec, byId)) return { elem: 'function', exprTpl: dec.exprTpl, args: dec.args };
         return skip('function definition (tag 2311) not decodable / geometry-valued refs');
+      }
+      if (o.srcType === 32) {
+        // t32 = a "tool folder" macro instance (the tool definition lives in an external file).
+        // GSP records the tool's *result* object as the first parent, so emit the instance as an
+        // alias of that parent (same element kind, expression = the parent's label).
+        const p0 = o.parents && o.parents[0];
+        const pp = p0 != null ? planOf(byId.get(p0), byId) : null;
+        if (pp && !pp.skip && pp.elem)
+          return { elem: pp.elem, exprTpl: R(p0), args: [p0],
+            warn: 'tool-folder macro instance (aliased to its result object)' };
+        return skip('macro instance: result object not emittable');
       }
       // unknown type
       if (o.coords) {

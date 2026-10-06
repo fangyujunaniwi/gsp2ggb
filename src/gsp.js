@@ -120,6 +120,7 @@ const TYPES = {
   29: { k: 'measuredAngleRotate' }, // preimage + center + angle-measure (MeasuredAngleRotation)
   30: { k: 'dilateImage' },     // preimage + center, params (ratio)
   31: { k: 'segRatioDilate' },  // preimage + center + numSeg + denomSeg (Dilation2S)
+  32: { k: 'macro' },           // tool-folder tool instance; result = parents[0] (definition external)
   33: { k: 'markedRatioDilate' }, // preimage + center + ratio-measure (DilationMR)
   34: { k: 'reflectImage' },    // preimage + mirror (line/segment/point): Reflection
   35: { k: 'locus' },           // Sampler/gPointLocus: traced point + mover path + mover (+ deps)
