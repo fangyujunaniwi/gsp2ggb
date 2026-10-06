@@ -160,6 +160,7 @@ function elemTypeOf(o, byId) {
   if (o.kind === 'polygon') return 'polygon';
   if (NUM_KINDS.has(o.kind)) return 'numeric';
   if (o.kind === 'text') return 'text';
+  if (o.kind === 'image') return 'image';
   if (XFORM_KINDS.has(o.kind))
     return elemTypeOf(byId.get(o.parents[0]), byId);
   return 'point';
@@ -1956,31 +1957,37 @@ function irToGgb(ir) {
       continue;
     }
     if (p.elem === 'image') {
-      // GSP picture -> GeoGebra <image>.  Corners: either explicit points, or one anchor point
-      // plus an offset of the picture's pixel size (in GeoGebra units, y flips).
-      let ii = '';
-      ii += '\t<file name="images/image' + ((p.imageIndex | 0) + 1) + '.png"/>\n';
-      ii += '\t<inBackground val="false"/>\n';
-      if (p.freeCorners) {
-        p.freeCorners.forEach((c, k) => {
-          ii += '\t<startPoint number="' + k + '" x="' + fmt(c.x) + '" y="' + fmt(c.y) + '" z="1"/>\n';
-        });
-      } else if (p.corners) {
-        p.corners.forEach((cid, k) => {
-          ii += '\t<startPoint number="' + k + '" exp="' + xmlEsc(labels.get(cid) || 'undefined_1') + '"/>\n';
-        });
+      // GSP picture -> GeoGebra <image>.  A *base* picture carries the file + corners; a
+      // *transformed* picture (translation/rotation/dilation/reflection of a picture) instead
+      // carries an expression and inherits the bitmap, so it has no <file>.
+      let exprLine = '', ii = '';
+      if (p.exprTpl) {
+        const exp = p.exprTpl.replace(/\{#(\d+)\}/g, (m, id) => labels.get(parseInt(id, 10)) || 'undefined_1');
+        exprLine = '<expression label="' + xmlEsc(lab) + '" exp="' + xmlEsc(exp) + '" />\n';
       } else {
-        const anchor = labels.get(p.anchorId) || 'undefined_1';
-        ii += '\t<startPoint number="0" exp="' + xmlEsc(anchor) + '"/>\n';
-        ii += '\t<startPoint number="1" exp="' +
-          xmlEsc('(' + anchor + ')+(' + fmt(p.dx) + ',' + fmt(-p.dy) + ')') + '"/>\n';
+        ii += '\t<file name="images/image' + ((p.imageIndex | 0) + 1) + '.png"/>\n';
+        ii += '\t<inBackground val="false"/>\n';
+        if (p.freeCorners) {
+          p.freeCorners.forEach((c, k) => {
+            ii += '\t<startPoint number="' + k + '" x="' + fmt(c.x) + '" y="' + fmt(c.y) + '" z="1"/>\n';
+          });
+        } else if (p.corners) {
+          p.corners.forEach((cid, k) => {
+            ii += '\t<startPoint number="' + k + '" exp="' + xmlEsc(labels.get(cid) || 'undefined_1') + '"/>\n';
+          });
+        } else {
+          const anchor = labels.get(p.anchorId) || 'undefined_1';
+          ii += '\t<startPoint number="0" exp="' + xmlEsc(anchor) + '"/>\n';
+          ii += '\t<startPoint number="1" exp="' +
+            xmlEsc('(' + anchor + ')+(' + fmt(p.dx) + ',' + fmt(-p.dy) + ')') + '"/>\n';
+        }
+        usedImages.add(p.imageIndex | 0);
       }
       ii += '\t<show object="true" label="false"/>\n';
       ii += '\t<objColor r="0" g="0" b="0" alpha="1"/>\n';
       ii += '\t<layer val="0"/>\n';
       ii += '\t<labelMode val="0"/>\n';
-      emitted.push('<element type="image" label="' + xmlEsc(lab) + '">\n' + ii + '</element>');
-      usedImages.add(p.imageIndex | 0);
+      emitted.push(exprLine + '<element type="image" label="' + xmlEsc(lab) + '">\n' + ii + '</element>');
       continue;
     }
     let exprLine = '';
