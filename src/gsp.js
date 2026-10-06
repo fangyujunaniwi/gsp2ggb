@@ -199,14 +199,15 @@ function gspToIR(buf, opts) {
   for (const r of recs) {
     if (r.tag === 1100) { newSection(sectionName(r.pay)); continue; }
     if (r.tag === 2316) {
-      // In a t99 (picture) object, tag 2316 carries the image's pixel dimensions.  In any other
-      // object (and only in files without tag-1100 sections) it is GSP 5.06's page-boundary
-      // record: the next object starts a new page.
-      if (cur && (cur.type === 99 || cur.type === 85 || cur.type === 100) && r.pay.length >= 8) {
-        cur.dims = { w: r.pay.readUInt32LE(0), h: r.pay.readUInt32LE(4) };
-      } else if (!has1100) {
-        pendingBreak = true;
+      // tag2316 = [u32 W][u32 H] x2.  In an image object it is the picture's pixel size
+      // (t85/t99/t100, or a t0 free picture — the latter also carries tag9006); otherwise,
+      // in a file without tag-1100, it is GSP 5.06's page-boundary record.
+      if (cur && r.pay.length >= 8) {
+        cur.t2316 = { w: r.pay.readUInt32LE(0), h: r.pay.readUInt32LE(4) };
+        if (cur.type === 99 || cur.type === 85 || cur.type === 100) cur.dims = cur.t2316;
       }
+      if (!(cur && (cur.type === 99 || cur.type === 85 || cur.type === 100)) && !has1100)
+        pendingBreak = true;
       continue;
     }
     if (r.tag === 2000) {
@@ -242,6 +243,17 @@ function gspToIR(buf, opts) {
       case 2201:
         if (r.pay.length >= 16) cur.coords = { x: r.pay.readDoubleLE(0), y: r.pay.readDoubleLE(8) };
         break;
+      case 2216:
+        // A free picture stores its placement as a 2x3 matrix [a,b,tx,c,d,ty].
+        if (r.pay.length >= 48) cur.imgMatrix = [0, 1, 2, 3, 4, 5].map(i => r.pay.readDoubleLE(i * 8));
+        break;
+      case 9006:
+        // Free pictures (t0) carry tag2316 + tag9006; promote the size and cancel any tentative
+        // page break, so a picture is not mistaken for a page boundary.
+        cur.has9006 = true;
+        if (cur.t2316) cur.dims = cur.t2316;
+        if (!has1100) pendingBreak = false;
+        break;
       default:
         if (r.tag === 2306 || r.tag === 2307 || r.tag === 2308 || r.tag === 2309 ||
             r.tag === 2310 || r.tag === 2311 || r.tag === 2314 || r.tag === 2211) {
@@ -273,7 +285,9 @@ function gspToIR(buf, opts) {
     let msg;
     // type-0 objects carrying a tag-2300 record are FixedText objects whose
     // message is stored inline (plain UTF-8 + rich-text markup).
-    if (raw.type === 0) {
+    if (raw.type === 0 && raw.has9006 && raw.dims) {
+      kind = 'image';                 // free picture (tag2316 size + tag9006 marker)
+    } else if (raw.type === 0) {
       const t = (raw.recs || []).find(r => r.tag === 2300);
       if (t) { kind = 'text'; msg = decodeGspText(t.pay); }
     }
@@ -288,6 +302,7 @@ function gspToIR(buf, opts) {
       coords: raw.coords,   // GSP logical, y-down
       params: raw.params,
       dims: raw.dims,
+      matrix: raw.imgMatrix,
       style: styleFromHdr(raw.hdr),
       _raw: raw
     };

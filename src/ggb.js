@@ -968,6 +968,15 @@ function planOf(o, byId) {
       if (!o.dims) return skip('picture without dimensions');
       const u = frame ? frame.uxLen : SCALE;
       const dx = o.dims.w / u, dy = o.dims.h / u;
+      if (o.parents.length === 0 && o.matrix) {
+        // Free picture: matrix [a,b,tx,c,d,ty] maps image-local (u,v) -> sketch px; corners at
+        // the image's (0,0) and (W,H).
+        const [a, b, tx, c, d, ty] = o.matrix;
+        const W = o.dims.w, H = o.dims.h;
+        return { elem: 'image', args: [], imageIndex: o.imageIndex,
+          freeCorners: [toPt({ x: tx, y: ty }), toPt({ x: a * W + b * H + tx, y: c * W + d * H + ty })],
+          warn: 'GSP free picture at a fixed position' };
+      }
       if (o.parents.length === 1 && isPointish(P[0]))
         return { elem: 'image', args: [o.parents[0]], imageIndex: o.imageIndex,
           anchorId: o.parents[0], dx, dy, warn: 'GSP picture anchored on a point' };
@@ -1952,7 +1961,11 @@ function irToGgb(ir) {
       let ii = '';
       ii += '\t<file name="images/image' + ((p.imageIndex | 0) + 1) + '.png"/>\n';
       ii += '\t<inBackground val="false"/>\n';
-      if (p.corners) {
+      if (p.freeCorners) {
+        p.freeCorners.forEach((c, k) => {
+          ii += '\t<startPoint number="' + k + '" x="' + fmt(c.x) + '" y="' + fmt(c.y) + '" z="1"/>\n';
+        });
+      } else if (p.corners) {
         p.corners.forEach((cid, k) => {
           ii += '\t<startPoint number="' + k + '" exp="' + xmlEsc(labels.get(cid) || 'undefined_1') + '"/>\n';
         });
