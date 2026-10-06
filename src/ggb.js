@@ -22,6 +22,194 @@ function decodedExpr(o) {
 }
 // Does the template use the independent variable x (i.e. is it a function, not a number)?
 function usesX(tpl) { return /(^|[^A-Za-z0-9_])x([^A-Za-z0-9_]|$)/.test(tpl); }
+// ---------------------------------------------------------------------------
+// Warning/notice text: every message the converter emits is bilingual (中文 / English).
+// `WARN_I18N` maps a message *body* to its full bilingual form; `tr()` is applied at the point
+// where warnings are assembled, so the individual emitters can keep short literals.
+// ---------------------------------------------------------------------------
+const WARN_I18N = {
+  // --- tool notes (Chinese) -> bilingual ---
+  'GSP iteration -> IterationList(f, iv, start, n)': 'GSP 迭代 → IterationList(函数, 变量, 起点, 次数) / GSP iteration -> IterationList(f, iv, start, n)',
+  'coordinate axis emitted as line through its origin': '坐标轴 → 过原点的直线 / coordinate axis emitted as line through its origin',
+  'GSP free picture at a fixed position': 'GSP 自由图片（固定位置） / GSP free picture at a fixed position',
+  'GSP picture anchored on a point': 'GSP 图片（锚在点上） / GSP picture anchored on a point',
+  'GSP picture between two points': 'GSP 图片（两点之间） / GSP picture between two points',
+  'GSP picture across three points': 'GSP 图片（三角点） / GSP picture across three points',
+  'fixed-coordinate plot point in a custom coordinate system': '自定义坐标系内的固定坐标点 / fixed-coordinate plot point in a custom coordinate system',
+  'coordinate-pair readout rendered as dynamic text': '坐标对读数 → 动态文本 / coordinate-pair readout rendered as dynamic text',
+  'line-circle root 1 (index form unverified)': '线圆交点①（索引形式未证实） / line-circle root 1 (index form unverified)',
+  'line-circle root 2 (index form unverified)': '线圆交点②（索引形式未证实） / line-circle root 2 (index form unverified)',
+  'circle-circle root 1 (index form unverified)': '圆圆交点①（索引形式未证实） / circle-circle root 1 (index form unverified)',
+  'circle-circle root 2 (index form unverified)': '圆圆交点②（索引形式未证实） / circle-circle root 2 (index form unverified)',
+  'point on segment: position not computable, kept fixed': '线段上的点：位置不可计算，保持固定 / point on segment: position not computable, kept fixed',
+  'point on segment without a stored parameter (position left to GeoGebra)': '线段上的点：无存储参数（位置交给 GeoGebra） / point on segment without a stored parameter (position left to GeoGebra)',
+  'point on line without a stored parameter (position left to GeoGebra)': '直线上的点：无存储参数（位置交给 GeoGebra） / point on line without a stored parameter (position left to GeoGebra)',
+  'point on polygon boundary as free-on-path point': '多边形边界上的点 → 可沿路径拖动 / point on polygon boundary as free-on-path point',
+  'point on polygon boundary (offset/n)': '多边形边界上的点（偏移/n） / point on polygon boundary (offset/n)',
+  'point on transformed segment via path parameter': '变换后线段上的点（按路径参数） / point on transformed segment via path parameter',
+  'point on transformed polygon (offset/n)': '变换后多边形上的点（偏移/n） / point on transformed polygon (offset/n)',
+  'point on circle as free-on-path point': '圆上的点 → 可沿路径拖动 / point on circle as free-on-path point',
+  'point on function plot (free on the graph)': '函数图上的点（可沿图像拖动） / point on function plot (free on the graph)',
+  'point on the function graph through an intersection (t98 host)': '函数图与路径的交点（t98 宿主） / point on the function graph through an intersection (t98 host)',
+  'rotation by a measured angle (direction from Angle(A,B,C))': '按测量角旋转（方向取 ∠ABC） / rotation by a measured angle (direction from Angle(A,B,C))',
+  'rotation by marked angle (tag 2311 decoded; value used as radians)': '按标记角旋转（2311 解码，值按弧度） / rotation by marked angle (tag 2311 decoded; value used as radians)',
+  'dilation by a measured ratio': '按测量比例缩放 / dilation by a measured ratio',
+  'dilation by a measured value (scale = marker value)': '按测量值缩放（比例=标记值） / dilation by a measured value (scale = marker value)',
+  'polar translation (t21): Translate by a fixed vector': '极坐标平移(t21) → 按固定向量平移 / polar translation (t21): Translate by a fixed vector',
+  'fixed-angle marked-distance translation (t24): Translate by a measured distance': '定角标记距离平移(t24) → 按测量距离平移 / fixed-angle marked-distance translation (t24): Translate by a measured distance',
+  'offset point (t17): direction convention assumed y-down': '偏移点(t17)：方向按 y 向下假定 / offset point (t17): direction convention assumed y-down',
+  'unit point of the plot coordinate system': '函数图坐标系的单位点 / unit point of the plot coordinate system',
+  'reflection in a circle (inversion)': '关于圆反射（反演） / reflection in a circle (inversion)',
+  'arc of a circle': '圆上的弧 / arc of a circle',
+  'arc of a circle centred at its first parent (t80)': '以首父为圆心的弧(t80) / arc of a circle centred at its first parent (t80)',
+  'arc through three points (t81)': '过三点的弧(t81) / arc through three points (t81)',
+  'locus (Sampler): Locus(traced, mover)': '轨迹(Sampler) → Locus(被跟踪点, 驱动点) / locus (Sampler): Locus(traced, mover)',
+  'point position along its path (PathParameter)': '点在路径上的相对位置 → PathParameter / point position along its path (PathParameter)',
+  'point position mapped onto another straight (t94 projection)': '点位置投影到另一直线(t94 投影) / point position mapped onto another straight (t94 projection)',
+  'point on a path at a parameter (t95)': '按参数取路径上的点(t95) / point on a path at a parameter (t95)',
+  'segment iterate image -> Sequence of two point-iteration lists': '线段迭代像 → 两个点迭代列表的 Sequence / segment iterate image -> Sequence of two point-iteration lists',
+  'intersection of a function graph with a path (t98)': '函数图与路径的交点(t98) / intersection of a function graph with a path (t98)',
+  'dynamic plot point (PlotXY) in a coordinate system': '坐标系内的动态绘图点(PlotXY) / dynamic plot point (PlotXY) in a coordinate system',
+  'formula text (t73)': '公式文本(t73) / formula text (t73)',
+  'function plot (graph of its function)': '函数图（由其函数重现） / function plot (graph of its function)',
+  'tool-folder macro instance (aliased to its result object)': '工具文件夹宏实例（别名为其结果对象） / tool-folder macro instance (aliased to its result object)',
+
+  // --- skip reasons (English) -> bilingual ---
+  'free object expression (tag 2311) not decodable': 'free object expression (tag 2311) not decodable / 自由对象表达式(2311)无法解码',
+  'value-less unlabeled free object (GSP page/origin placeholder)': 'value-less unlabeled free object (GSP page/origin placeholder) / 无值无标签的自由对象(页面/原点占位)',
+  'segment needs 2 points': 'segment needs 2 points / 线段需要 2 个点',
+  'line needs 2 points': 'line needs 2 points / 直线需要 2 个点',
+  'midpoint needs 1-2 parents': 'midpoint needs 1-2 parents / 中点需要 1–2 个父级',
+  'circle needs 2 parents': 'circle needs 2 parents / 圆需要 2 个父级',
+  'circle: no point centre': 'circle: no point centre / 圆：没有点圆心',
+  'circle: radius argument is not a point/segment/number': 'circle: radius argument is not a point/segment/number / 圆：半径参数不是点/线段/数值',
+  'perp line: needs a point and a non-function base': 'perp line: needs a point and a non-function base / 垂线：需要点与非函数基准',
+  'parallel line: needs a point and a non-function base': 'parallel line: needs a point and a non-function base / 平行线：需要点与非函数基准',
+  'bisector needs 3 parents': 'bisector needs 3 parents / 角平分线需要 3 个父级',
+  'axis needs origin': 'axis needs origin / 坐标轴需要原点',
+  'axis origin is not a point': 'axis origin is not a point / 坐标轴原点不是点',
+  'coordinate system (internal; not a GeoGebra object)': 'coordinate system (internal; not a GeoGebra object) / 坐标系(内部对象,非 GeoGebra 对象)',
+  'picture without dimensions': 'picture without dimensions / 图片缺少尺寸',
+  'picture: unsupported corner layout': 'picture: unsupported corner layout / 图片：角点布局不支持',
+  'plot point needs coord sys + (x,y)': 'plot point needs coord sys + (x,y) / 绘图点需要坐标系 + (x,y)',
+  'plot point: coordinate system not computable': 'plot point: coordinate system not computable / 绘图点：坐标系不可计算',
+  'coordinate pair needs point + coord sys': 'coordinate pair needs point + coord sys / 坐标对需要点 + 坐标系',
+  'coordinate pair: coordinate system not computable': 'coordinate pair: coordinate system not computable / 坐标对：坐标系不可计算',
+  'intersect needs 2 parents': 'intersect needs 2 parents / 交点需要 2 个父级',
+  'point-on-path needs parent': 'point-on-path needs parent / 路径上的点需要父级',
+  'point on function plot without a function parent': 'point on function plot without a function parent / 函数图上的点缺少函数父级',
+  'point on unsupported path (falls back nowhere)': 'point on unsupported path (falls back nowhere) / 路径上的点：宿主路径不支持',
+  'translate preimage/vector must not be text': 'translate preimage/vector must not be text / 平移的原像/向量不能是文本',
+  'rotate preimage/centre must not be text': 'rotate preimage/centre must not be text / 旋转的原像/中心不能是文本',
+  'dilation preimage/centre must not be text': 'dilation preimage/centre must not be text / 缩放的原像/中心不能是文本',
+  'marked-angle rotation needs preimage+center+A+B+C': 'marked-angle rotation needs preimage+center+A+B+C / 标记角旋转需要 原像+中心+A+B+C',
+  'segment-ratio dilation needs preimage+center+numSeg+denomSeg': 'segment-ratio dilation needs preimage+center+numSeg+denomSeg / 双段比缩放需要 原像+中心+分子段+分母段',
+  'measured-angle rotation needs preimage+center+measure': 'measured-angle rotation needs preimage+center+measure / 测量角旋转需要 原像+中心+角测量',
+  'measured angle value not decodable (tag 2311)': 'measured angle value not decodable (tag 2311) / 测量角值无法解码(2311)',
+  'marked-ratio dilation needs preimage+center+ratio': 'marked-ratio dilation needs preimage+center+ratio / 标记比缩放需要 原像+中心+比例',
+  'marked-ratio dilation center is not a point': 'marked-ratio dilation center is not a point / 标记比缩放的中心不是点',
+  'marked-ratio value not decodable (tag 2311)': 'marked-ratio value not decodable (tag 2311) / 标记比值无法解码(2311)',
+  'polar translation needs exactly one parent': 'polar translation needs exactly one parent / 极坐标平移需要恰好 1 个父级',
+  'polar translation needs (p0,p1,d1) from tag 2003': 'polar translation needs (p0,p1,d1) from tag 2003 / 极坐标平移缺少 tag2003 的 (p0,p1,d1)',
+  'fixed-angle marked-distance translation needs preimage+distance': 'fixed-angle marked-distance translation needs preimage+distance / 定角标记距离平移需要 原像+距离',
+  'fixed-angle marked-distance translation: fixed angle not stored': 'fixed-angle marked-distance translation: fixed angle not stored / 定角标记距离平移：未存固定角',
+  'fixed-angle marked-distance value not decodable (tag 2311)': 'fixed-angle marked-distance value not decodable (tag 2311) / 定角标记距离值无法解码(2311)',
+  'fixed-angle marked-distance translation under an anisotropic sketch frame': 'fixed-angle marked-distance translation under an anisotropic sketch frame / 定角标记距离平移：非均匀草图坐标系',
+  'fixed-angle marked-distance translation: degenerate direction': 'fixed-angle marked-distance translation: degenerate direction / 定角标记距离平移：方向退化',
+  'unit point needs origin+dx': 'unit point needs origin+dx / 单位点需要原点+dx',
+  'offset point needs parent + (dx,dy)': 'offset point needs parent + (dx,dy) / 偏移点需要父级 + (dx,dy)',
+  'vertical unit point needs origin+scale': 'vertical unit point needs origin+scale / 纵轴单位点需要原点+比例',
+  'foot needs point+line': 'foot needs point+line / 垂足需要点+直线',
+  'reflection needs preimage+mirror': 'reflection needs preimage+mirror / 反射需要 原像+镜面',
+  'reflection mirror unsupported': 'reflection mirror unsupported / 反射镜面不支持',
+  'arc needs conic + 2 points': 'arc needs conic + 2 points / 弧需要圆锥曲线 + 2 个点',
+  'centred arc needs centre + 2 points': 'centred arc needs centre + 2 points / 圆心弧需要中心 + 2 个点',
+  'arc through three points needs 3 points': 'arc through three points needs 3 points / 三点弧需要 3 个点',
+  'polygon needs >=3 vertices': 'polygon needs >=3 vertices / 多边形需要 ≥3 个顶点',
+  'polygon vertices must all be points': 'polygon vertices must all be points / 多边形顶点必须都是点',
+  'locus needs traced + path + mover': 'locus needs traced + path + mover / 轨迹需要 被跟踪点+路径+驱动点',
+  'locus: traced object is not a point': 'locus: traced object is not a point / 轨迹：被跟踪对象不是点',
+  'locus: mover is not a point on its stated path': 'locus: mover is not a point on its stated path / 轨迹：驱动点不在其路径上',
+  'locus of a locus': 'locus of a locus / 轨迹的轨迹(嵌套)',
+  'locus: traced point does not depend on the mover': 'locus: traced point does not depend on the mover / 轨迹：被跟踪点不依赖驱动点',
+  'angle needs 3 points': 'angle needs 3 points / 角需要 3 个点',
+  'angle value needs angle parent': 'angle value needs angle parent / 角值需要角父级',
+  'length measure needs segment': 'length measure needs segment / 长度测量需要线段',
+  'distance measure: unsupported parents': 'distance measure: unsupported parents / 距离测量：父级不支持',
+  'point-line distance: ambiguous parents': 'point-line distance: ambiguous parents / 点线距离：父级有歧义',
+  'point-line distance needs 2 parents': 'point-line distance needs 2 parents / 点线距离需要 2 个父级',
+  'coordinate distance needs 2 points + coordinate system': 'coordinate distance needs 2 points + coordinate system / 坐标距离需要 2 点 + 坐标系',
+  'slope measure needs line/segment': 'slope measure needs line/segment / 斜率测量需要直线/线段',
+  'perimeter needs 1 parent': 'perimeter needs 1 parent / 周长需要 1 个父级',
+  'circumference needs 1 parent': 'circumference needs 1 parent / 圆周长需要 1 个父级',
+  'area needs 1 parent': 'area needs 1 parent / 面积需要 1 个父级',
+  'radius needs 1 parent': 'radius needs 1 parent / 半径需要 1 个父级',
+  'arc angle needs 1 parent': 'arc angle needs 1 parent / 弧角度需要 1 个父级',
+  'arc length needs 1 parent': 'arc length needs 1 parent / 弧长需要 1 个父级',
+  'point-position measure: unsupported host': 'point-position measure: unsupported host / 点位置测量：宿主不支持',
+  'point at a parameter needs a value + a path': 'point at a parameter needs a value + a path / 参数点需要 值 + 路径',
+  'point at a parameter: cannot tell path from value': 'point at a parameter: cannot tell path from value / 参数点：无法区分路径与值',
+  'point at a parameter: value not decodable': 'point at a parameter: value not decodable / 参数点：值无法解码',
+  'iterate image needs [object, iteration]': 'iterate image needs [object, iteration] / 迭代像需要 [对象, 迭代]',
+  'segment iterate image: endpoints are not points/numbers': 'segment iterate image: endpoints are not points/numbers / 线段迭代像：端点不是点/数值',
+  'curve intersection needs two paths': 'curve intersection needs two paths / 曲线交点需要两条路径',
+  'ratio measure: unsupported parents': 'ratio measure: unsupported parents / 比值测量：父级不支持',
+  'abscissa needs point + coordinate system': 'abscissa needs point + coordinate system / 横坐标需要 点 + 坐标系',
+  'ordinate needs point + coordinate system': 'ordinate needs point + coordinate system / 纵坐标需要 点 + 坐标系',
+  'plotXY needs x,y,coordinate system': 'plotXY needs x,y,coordinate system / PlotXY 需要 x,y,坐标系',
+  'formula text (t73) is empty': 'formula text (t73) is empty / 公式文本(t73)为空',
+  'formula references a segment/circle by value (measure semantics not modelled)': 'formula references a segment/circle by value (measure semantics not modelled) / 公式按值引用线段/圆(度量语义未建模)',
+  'text/metric content (tag 2311) not decodable': 'text/metric content (tag 2311) not decodable / 文本/度量内容(2311)无法解码',
+  'polygon/button hybrid (not geometry)': 'polygon/button hybrid (not geometry) / 多边形/按钮混合体(非几何)',
+  'action button without metadata': 'action button without metadata / 动作按钮缺少元数据',
+  'action button without targets': 'action button without targets / 动作按钮缺少目标',
+  'move button needs an even target count': 'move button needs an even target count / 移动按钮目标数须为偶数',
+  'move button pair ambiguous (source/destination)': 'move button pair ambiguous (source/destination) / 移动按钮配对有歧义(源/目标)',
+  'function plot without an emittable function': 'function plot without an emittable function / 函数图缺少可发射的函数',
+  'function definition (tag 2311) not decodable / geometry-valued refs': 'function definition (tag 2311) not decodable / geometry-valued refs / 函数定义(2311)无法解码/含几何值引用',
+  'macro instance: result object not emittable': 'macro instance: result object not emittable / 宏实例：结果对象不可发射',
+  'iteration: count not decoded (tag 2314 +16)': 'iteration: count not decoded (tag 2314 +16) / 迭代：次数无法解码(tag 2314 +16)',
+  'iteration: image object missing': 'iteration: image object missing / 迭代：缺少像对象',
+  'iteration: image not emittable': 'iteration: image not emittable / 迭代：像不可发射',
+  'iteration: count appears in the body and is not a constant': 'iteration: count appears in the body and is not a constant / 迭代：次数出现在表达式里且不是常量',
+  'iteration needs a preimage and its image': 'iteration needs a preimage and its image / 迭代需要 原像 与 其像',
+  'iteration: image does not depend on the preimage (multi-variable?)': 'iteration: image does not depend on the preimage (multi-variable?) / 迭代：像不依赖原像(多变量?)',
+  'iteration: start is not a point/number (would degrade in GeoGebra)': 'iteration: start is not a point/number (would degrade in GeoGebra) / 迭代：起点不是点/数值(在 GeoGebra 会退化)',
+  'not an iteration object': 'not an iteration object / 不是迭代对象',
+  'custom transform: definition source is not a point': 'custom transform: definition source is not a point / 自定义变换：定义源不是点',
+  'custom transform: definition source not referenced': 'custom transform: definition source not referenced / 自定义变换：未引用定义源',
+  'custom transform: prototype not emittable': 'custom transform: prototype not emittable / 自定义变换：原型不可发射',
+  'custom transform: only point-valued prototypes supported': 'custom transform: only point-valued prototypes supported / 自定义变换：仅支持点值原型',
+  'custom transform: unexpected parent layout': 'custom transform: unexpected parent layout / 自定义变换：父级布局异常',
+  'custom transform: unsupported preimage kind': 'custom transform: unsupported preimage kind / 自定义变换：原像类型不支持',
+  'all move targets skipped': 'all move targets skipped / 移动目标全部被跳过',
+  'all button targets skipped': 'all button targets skipped / 按钮目标全部被跳过',
+  'button plan without metadata': 'button plan without metadata / 按钮计划缺少元数据',
+  'point on circle: stored parameter form not decodable (initial position left to GeoGebra)': 'point on circle: stored parameter form not decodable (initial position left to GeoGebra) / 圆上的点：存储参数形式无法解码(初值交给 GeoGebra)',
+  'point on circle: position not computable (initial position left to GeoGebra)': 'point on circle: position not computable (initial position left to GeoGebra) / 圆上的点：位置不可计算(初值交给 GeoGebra)',
+  'circle centre was the second parent (radius first)': 'circle centre was the second parent (radius first) / 圆的圆心是第二个父级(半径在前)',
+  'custom-transform image: P->X substitution into the prototype': 'custom-transform image: P->X substitution into the prototype / 自定义变换像：把 P→X 代入原型',
+  'animate button without animatable target': 'animate button without animatable target / 动画按钮缺少可动画目标',
+  'depends on skipped object': 'depends on skipped object / 依赖被跳过的对象',
+  'unresolved parent': 'unresolved parent / 父对象无法解析',
+  'value not stored in GSP; assumed': 'value not stored in GSP; assumed / GSP 未存该值，假定为',
+  'no definition for ': 'no definition for / 无定义：',
+  'action button kind ': 'action button kind / 动作按钮类型',
+  'unknown GSP type ': 'unknown GSP type / 未知 GSP 类型'
+};
+// Translate a message body to bilingual (keeps the reference id/label intact).  Unknown bodies
+// are returned unchanged.
+function tr(body) {
+  if (!body) return body;
+  if (WARN_I18N[body]) return WARN_I18N[body];
+  for (const k of Object.keys(WARN_I18N)) {
+    if (body.startsWith(k)) return WARN_I18N[k] + body.slice(k.length);
+  }
+  return body;
+}
+// Bilingual helper for dynamically-built messages:  bi('中文', 'English').
+const bi = (zh, en) => zh + ' / ' + en;
+
 // An object whose definition is a function of x (t71/t72/t78) is not a straight, so it can
 // never be the base of PerpendicularLine/Line/etc.  Used to avoid `PerpendicularLine(f,...)`.
 function isFunctionObject(o) {
@@ -822,7 +1010,8 @@ function iterationListPlan(it, byId, startId) {
   return { elem: 'list',
     exprTpl: 'IterationList(' + c.fTpl + ',iv,{' + R(startId) + '},' + c.cntTpl + ')',
     args: (c.args || []).concat([startId], c.extra),
-    warn: 'GSP iteration -> IterationList(f, iv, start, ' + c.cntTpl + ')' };
+    warn: bi('GSP 迭代 → IterationList(函数, 变量, 起点, ' + c.cntTpl + ')',
+      'GSP iteration -> IterationList(f, iv, start, ' + c.cntTpl + ')') };
 }
 
 // t101/t102 = a custom-transformation image.  Parent layout (verified on the five
@@ -1058,8 +1247,8 @@ function planOf(o, byId) {
           const xy = gspPosXY(o, byId, 0);
           return { elem: 'point', exprTpl: 'Point(' + R(path.id) + ')',
             args: [path.id], ...(xy ? { pathXY: toPt(xy) } : {}),
-            warn: 'point on ' + path.kind + (xy ? ' as free-on-path point'
-              : ': initial position left to GeoGebra') };
+            warn: xy ? bi('路径上的点（' + path.kind + '）→ 可沿路径拖动', 'point on ' + path.kind + ' as free-on-path point')
+              : bi('路径上的点（' + path.kind + '）：初值交给 GeoGebra', 'point on ' + path.kind + ': initial position left to GeoGebra') };
         }
         return { elem: 'point', exprTpl: 'Point(' + R(path.id) + ')', args: [path.id],
           warn: 'point on line without a stored parameter (position left to GeoGebra)' };
@@ -1093,7 +1282,7 @@ function planOf(o, byId) {
         if (cur && (CIRC_KINDS.has(cur.kind) || SEG_KINDS.has(cur.kind) || LINE_KINDS.has(cur.kind) ||
             (cur.kind === 'polygon' && cur.parents.length >= 3))) {
           return { elem: 'point', exprTpl: 'Point(' + R(path.id) + ')', args: [path.id],
-            warn: 'point on transformed ' + cur.kind + ': initial position left to GeoGebra' };
+            warn: bi('变换后对象（' + cur.kind + '）上的点：初值交给 GeoGebra', 'point on transformed ' + cur.kind + ': initial position left to GeoGebra') };
         }
       }
       // circle path: the two-parameter form is a unit direction (cos,sin) in a y-up frame
@@ -1142,7 +1331,7 @@ function planOf(o, byId) {
       // the same policy as a one-parameter circle point.
       if (path && (path.kind === 'arc' || path.kind === 'arcCenter' || path.kind === 'arc3Points' || path.kind === 'locus'))
         return { elem: 'point', exprTpl: 'Point(' + R(path.id) + ')', args: [path.id],
-          warn: 'point on ' + path.kind + ': initial position left to GeoGebra' };
+          warn: bi('路径上的点（' + path.kind + '）：初值交给 GeoGebra', 'point on ' + path.kind + ': initial position left to GeoGebra') };
       // A point "on" an intersection object (t98) is on the function graph that produced it.
       if (path && path.kind === 'curveIntersect') {
         const fp = (path.parents || []).map(id => byId.get(id)).find(p => p && p.srcType === 72);
@@ -1938,10 +2127,10 @@ function irToGgb(ir) {
   };
   for (const o of ir.objects) {
     const p = plans.get(o.id);
-    if (!p || p.skip) { if (o.kind !== 'free' || !o.coords) warnings.push('skip #' + o.id + ' t' + o.srcType + ' ' + o.kind + ': ' + p.skip); continue; }
-    if (p.warn) warnings.push('#' + o.id + ' t' + o.srcType + ': ' + p.warn);
+    if (!p || p.skip) { if (o.kind !== 'free' || !o.coords) warnings.push('skip #' + o.id + ' t' + o.srcType + ' ' + o.kind + ': ' + tr(p.skip)); continue; }
+    if (p.warn) warnings.push('#' + o.id + ' t' + o.srcType + ': ' + tr(p.warn));
     if (p.free && p.free.assumed)
-      warnings.push('#' + o.id + ' t' + o.srcType + ': value not stored in GSP; assumed ' + p.free.value);
+      warnings.push('#' + o.id + ' t' + o.srcType + ': ' + tr('value not stored in GSP; assumed') + ' ' + p.free.value);
     const lab = labels.get(o.id);
     const rgb = styleOf(o);
     const dep = !p.free;
@@ -1949,6 +2138,10 @@ function irToGgb(ir) {
     // (<ggbscript>), positioned with <absoluteScreenLocation>.  The script is
     // built from the (surviving) targets, so a button never references a
     // dropped object.
+    if (p.elem === 'button' && !p.btn) {
+      warnings.push('#' + o.id + ' t' + o.srcType + ': ' + tr('button plan without metadata'));
+      continue;
+    }
     if (p.elem === 'button') {
       const script = buildBtnScript(p, 0);
       const gspLabel = String(o.label || '').trim();
