@@ -197,17 +197,40 @@ function gspToIR(buf, opts) {
 
   const newSection = name => { cur = null; curSec = { name, objects: [] }; sections.push(curSec); };
 
+  // Embedded-image pixel sizes (tag1300 = [u32 W][u32 H][PNG]).
+  const imgDimKeys = new Set();
+  for (const r of recs) if (r.tag === 1300 && r.pay.length >= 8)
+    imgDimKeys.add(r.pay.readUInt32LE(0) + 'x' + r.pay.readUInt32LE(4));
+  // A t0 carrying tag2316 is ambiguous: it is either a *free picture* (its size matches an
+  // embedded image, or it also carries tag9006) or GSP 5.06's page-boundary record.  Multiple
+  // such objects in one file are page markers; a lone matching one is a picture.
+  let loneT0Picture = true;
+  {
+    let c = null, np = 0;
+    for (const r of recs) {
+      if (r.tag === 2000) { c = r.pay.readUInt16LE(0); continue; }
+      if (r.tag === 2316 && c === 0) np++;
+      if (r.tag === 2007) c = null;
+    }
+    loneT0Picture = np === 1;
+  }
+
   for (const r of recs) {
     if (r.tag === 1100) { newSection(sectionName(r.pay)); continue; }
     if (r.tag === 2316) {
       // tag2316 = [u32 W][u32 H] x2.  In an image object it is the picture's pixel size
-      // (t85/t99/t100, or a t0 free picture — the latter also carries tag9006); otherwise,
-      // in a file without tag-1100, it is GSP 5.06's page-boundary record.
+      // (t85/t99/t100, or a lone t0 free picture); otherwise, in a file without tag-1100, it is
+      // GSP 5.06's page-boundary record.
       if (cur && r.pay.length >= 8) {
         cur.t2316 = { w: r.pay.readUInt32LE(0), h: r.pay.readUInt32LE(4) };
-        if (cur.type === 99 || cur.type === 85 || cur.type === 100) cur.dims = cur.t2316;
+        const key = cur.t2316.w + 'x' + cur.t2316.h;
+        if (cur.type === 99 || cur.type === 85 || cur.type === 100 ||
+            (cur.type === 0 && loneT0Picture && imgDimKeys.has(key))) {
+          cur.dims = cur.t2316;
+          if (cur.type === 0) cur.has9006 = true;   // mark as a picture (not a page break)
+        }
       }
-      if (!(cur && (cur.type === 99 || cur.type === 85 || cur.type === 100)) && !has1100)
+      if (!(cur && cur.has9006) && !has1100 && !(cur && (cur.type === 99 || cur.type === 85 || cur.type === 100)))
         pendingBreak = true;
       continue;
     }
@@ -364,7 +387,7 @@ function gspToIR(buf, opts) {
         }
         if (target) ir.parents.push(target.id);
         else {
-          warnings.push('obj#' + (i + 1) + ' (t' + ir.srcType + '): unresolved parent ' + pref);
+          warnings.push('obj#' + (i + 1) + ' (t' + ir.srcType + '): unresolved parent / 父对象无法解析 ' + pref);
         }
       }
     });

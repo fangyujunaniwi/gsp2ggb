@@ -1183,8 +1183,10 @@ function planOf(o, byId) {
       const cs = coordSysRef(P[0], byId, R);
       if (!cs) return skip('plot point: coordinate system not computable');
       const x = fmt(o.params[0]), y = fmt(o.params[1]);
+      // GSP: file_y = originY − y·unitY (y-down file).  GeoGebra y is up, so once the origin has
+      // been flipped into GeoGebra coordinates the plot y maps as +y·uy (NOT −; that double-flips).
       return { elem: 'point',
-        exprTpl: '(' + cs.ox + ' + (' + x + ')*(' + cs.ux + '), ' + cs.oy + ' - (' + y + ')*(' + cs.uy + '))',
+        exprTpl: '(' + cs.ox + ' + (' + x + ')*(' + cs.ux + '), ' + cs.oy + ' + (' + y + ')*(' + cs.uy + '))',
         warn: 'fixed-coordinate plot point in a custom coordinate system' };
     }
     case 'coordPair': {
@@ -1192,7 +1194,7 @@ function planOf(o, byId) {
       const cs = coordSysRef(P[1], byId, R);
       if (!cs) return skip('coordinate pair: coordinate system not computable');
       const xv = '(x(' + R(o.parents[0]) + ') - (' + cs.ox + '))/(' + cs.ux + ')';
-      const yv = '-(y(' + R(o.parents[0]) + ') - (' + cs.oy + '))/(' + cs.uy + ')';
+      const yv = '(y(' + R(o.parents[0]) + ') - (' + cs.oy + '))/(' + cs.uy + ')';
       return { elem: 'text', exprTpl: '"(" + (' + xv + ') + ", " + (' + yv + ') + ")"',
         warn: 'coordinate-pair readout rendered as dynamic text' };
     }
@@ -1792,7 +1794,7 @@ function planOf(o, byId) {
       if (pid != null && P.length === 2) {
         const cs = coordSysRef(P[1], byId, R);
         if (cs) return { elem: 'numeric',
-          exprTpl: '-(y(' + R(pid) + ') - (' + cs.oy + '))/(' + cs.uy + ')', args: o.parents };
+          exprTpl: '(y(' + R(pid) + ') - (' + cs.oy + '))/(' + cs.uy + ')', args: o.parents };
       }
       return skip('ordinate needs point + coordinate system');
     }
@@ -1801,7 +1803,7 @@ function planOf(o, byId) {
       if (P.length >= 3) {
         const cs = coordSysRef(P[2], byId, R);
         if (cs) return { elem: 'point',
-          exprTpl: '(' + cs.ox + ' + (' + R(o.parents[0]) + ')*(' + cs.ux + '), ' + cs.oy + ' - (' + R(o.parents[1]) + ')*(' + cs.uy + '))',
+          exprTpl: '(' + cs.ox + ' + (' + R(o.parents[0]) + ')*(' + cs.ux + '), ' + cs.oy + ' + (' + R(o.parents[1]) + ')*(' + cs.uy + '))',
           args: [o.parents[0], o.parents[1], o.parents[2]],
           warn: 'dynamic plot point (PlotXY) in a coordinate system' };
       }

@@ -1,0 +1,16 @@
+'use strict';
+const fs = require('fs');
+const { unzip } = require('../src/zip.js');
+const m = unzip(fs.readFileSync(process.argv[2]));
+console.log('entries: ' + [...m.keys()].join(', '));
+const xml = m.get('geogebra.xml').toString('utf8');
+const imgs = xml.match(/<element type="image"[\s\S]*?<\/element>/g) || [];
+console.log('image elements=' + imgs.length);
+for (const e of imgs) console.log('  ' + e.replace(/\s+/g, ' ').slice(0, 320));
+const expr = xml.match(/<expression[^>]*\/>/g) || [];
+console.log('expressions=' + expr.length);
+for (const e of expr) console.log('  ' + e.replace(/&quot;/g, '"'));
+const cs = xml.match(/<coordSystem[^>]*>/g) || [];
+for (const c of cs) console.log('coordSystem ' + c);
+const cp = xml.match(/<corner[^>]*>/g) || xml.match(/<startPoint[^>]*>/g) || [];
+for (const c of cp) console.log('corner ' + c);
