@@ -1155,24 +1155,23 @@ function planOf(o, byId) {
     case 'coordsys':
       return skip('coordinate system (internal; not a GeoGebra object)');
     case 'image': {
-      // GSP Picture.  1 parent  = anchored on a point (corner 1 = point + pixel size);
-      //                2 parents = the two corner points;
-      //                3 parents = three corner points.
       if (!o.dims) return skip('picture without dimensions');
       const u = frame ? frame.uxLen : SCALE;
-      const dx = o.dims.w / u, dy = o.dims.h / u;
+      const dw = o.dims.w / u, dh = o.dims.h / u;
+      // GeoGebra image corners: number 0 = bottom-left, 1 = bottom-right, 2 = top-left
+      // (counter-clockwise from lower-left).  Corner 1 sets the width, corner 2 the height.
       if (o.parents.length === 0 && o.matrix) {
-        // Free picture: matrix [a,b,tx,c,d,ty] maps image-local (u,v) -> sketch px; corners at
-        // the image's (0,0) and (W,H).
-        const [a, b, tx, c, d, ty] = o.matrix;
+        const [a, b, tx, c, d, ty] = o.matrix;   // image-local (u,v) -> sketch px (y-down)
         const W = o.dims.w, H = o.dims.h;
+        const bl = toPt({ x: b * H + tx, y: d * H + ty });              // (0,H)
+        const br = toPt({ x: a * W + b * H + tx, y: c * W + d * H + ty }); // (W,H)
+        const tl = toPt({ x: tx, y: ty });                              // (0,0)
         return { elem: 'image', args: [], imageIndex: o.imageIndex,
-          freeCorners: [toPt({ x: tx, y: ty }), toPt({ x: a * W + b * H + tx, y: c * W + d * H + ty })],
-          warn: 'GSP free picture at a fixed position' };
+          freeCorners: [bl, br, tl], warn: 'GSP free picture at a fixed position' };
       }
       if (o.parents.length === 1 && isPointish(P[0]))
         return { elem: 'image', args: [o.parents[0]], imageIndex: o.imageIndex,
-          anchorId: o.parents[0], dx, dy, warn: 'GSP picture anchored on a point' };
+          anchorId: o.parents[0], dw, dh, warn: 'GSP picture anchored on a point' };
       if (o.parents.length === 2 && isPointish(P[0]) && isPointish(P[1]))
         return { elem: 'image', args: o.parents, imageIndex: o.imageIndex,
           corners: o.parents, warn: 'GSP picture between two points' };
@@ -2185,10 +2184,11 @@ function irToGgb(ir) {
             ii += '\t<startPoint number="' + k + '" exp="' + xmlEsc(labels.get(cid) || 'undefined_1') + '"/>\n';
           });
         } else {
+          // Anchored picture: corner 0 = the anchor (bottom-left); width to the right, height up.
           const anchor = labels.get(p.anchorId) || 'undefined_1';
           ii += '\t<startPoint number="0" exp="' + xmlEsc(anchor) + '"/>\n';
-          ii += '\t<startPoint number="1" exp="' +
-            xmlEsc('(' + anchor + ')+(' + fmt(p.dx) + ',' + fmt(-p.dy) + ')') + '"/>\n';
+          ii += '\t<startPoint number="1" exp="' + xmlEsc('(' + anchor + ')+(' + fmt(p.dw) + ',0)') + '"/>\n';
+          ii += '\t<startPoint number="2" exp="' + xmlEsc('(' + anchor + ')+(0,' + fmt(p.dh) + ')') + '"/>\n';
         }
         usedImages.add(p.imageIndex | 0);
       }
