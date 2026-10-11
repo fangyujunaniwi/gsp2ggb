@@ -815,6 +815,9 @@ function axisScaleRef(o, byId, R, depth) {
 // cascade correctly when one of them is skipped).
 function coordSysRef(o, byId, R) {
   if (!o) return null;
+  // When the whole sketch is emitted in its own coordinate system (a single frame), the
+  // system IS GeoGebra's: origin (0,0), unit 1.
+  if (byId && byId.frame) return { ox: '0', ux: '1', oy: '0', uy: '1', ids: [] };
   // A measurement stored against a function plot (t72) really uses that plot's own
   // coordinate system (its t61 parent); resolve through it.
   if (o.srcType === 72) {
@@ -1997,11 +2000,11 @@ function irToGgb(ir) {
   for (const o of ir.objects) { o._unit = ir.meta && ir.meta.unit ? ir.meta.unit : 'gsp'; o._byId = byId; byId.set(o.id, o); }
 
   // 0) sketch coordinate frame (custom axes) + which functions are plotted (t72).
-  // The frame is only applied when the sketch actually contains functions: that is where
-  // GSP's own coordinate units and sketch-pixel space disagree.  Everything else keeps the
-  // plain pixel mapping (and the sketch's axes are drawn as ordinary lines).
-  const hasFn = ir.objects.some(o => o.srcType === 72 || o.srcType === 71 || o.srcType === 78);
-  byId.frame = hasFn ? sketchFrame(ir, byId) : null;
+  // A sketch with a single, unambiguous coordinate system is emitted *in that system*: the
+  // system's origin becomes (0,0) and its unit becomes 1, so a plot point (x,y) lands at
+  // GeoGebra (x,y) — matching what the sketch's own axes/grid show.  (Multiple coordinate
+  // systems stay in plain pixel mapping.)
+  byId.frame = sketchFrame(ir, byId);
   byId.plotted = new Map();
   for (const o of ir.objects) {
     if (o.srcType === 72 && o.parents && o.parents.length) {
