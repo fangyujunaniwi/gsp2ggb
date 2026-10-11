@@ -1949,18 +1949,22 @@ function header(title, xZero, yZero, scale, yscale) {
     '<gui>\n' +
     '\t<window width="' + W + '" height="' + H + '" />\n' +
     '\t<perspectives>\n<perspective id="tmp">\n' +
-    '\t<panes>\n\t\t<pane location="" divider="Infinity" orientation="1" />\n\t</panes>\n' +
+    '\t<panes>\n\t<pane location="" divider="0.25" orientation="1"/>\n</panes>\n' +
     '\t<views>\n' +
+    '\t\t<view id="4097" visible="false" inframe="false" stylebar="true" location="1,1,1,1" size="400" window="100,100,700,550"/>\n' +
+    '\t\t<view id="512" toolbar="0" visible="false" inframe="false" stylebar="false" location="1,1,1" size="500" window="100,100,600,400"/>\n' +
     '\t\t<view id="4" toolbar="0 || 2020 , 2021 , 2022 , 66 || 2001 , 2003 , 2002 , 2004 , 2005 || 2040 , 2041 , 2042 , 2044 , 2043" visible="false" inframe="false" stylebar="false" location="1,1" size="300" window="100,100,600,400" />\n' +
     '\t\t<view id="8" toolbar="1001 | 1002 | 1003  || 1005 | 1004 || 1006 | 1007 || 1008 1009" visible="false" inframe="false" stylebar="false" location="1,3" size="300" window="100,100,600,400" />\n' +
     '\t\t<view id="1" visible="true" inframe="false" stylebar="false" location="1" size="' + Math.round(W * 0.7) + '" window="100,100,600,400" />\n' +
-    '\t\t<view id="2" visible="true" inframe="false" stylebar="false" location="3" size="' + Math.round(W * 0.3) + '" window="100,100,250,400" />\n' +
-    '\t\t<view id="16" visible="false" inframe="true" stylebar="false" location="1" size="150" window="50,50,500,500" />\n' +
-    '\t\t<view id="32" visible="false" inframe="true" stylebar="true" location="1" size="150" window="50,50,500,500" />\n' +
-    '\t\t<view id="64" visible="false" inframe="true" stylebar="false" location="1" size="150" window="50,50,500,500" />\n' +
+    '\t\t<view id="2" visible="true" inframe="false" stylebar="false" location="3" size="' + Math.round(W * 0.3) + '" tab="ALGEBRA" window="100,100,600,400" />\n' +
+    '\t\t<view id="16" visible="false" inframe="false" stylebar="false" location="1" size="150" window="50,50,500,500" />\n' +
+    '\t\t<view id="32" visible="false" inframe="false" stylebar="true" location="1" size="150" window="50,50,500,500" />\n' +
+    '\t\t<view id="64" visible="false" inframe="false" stylebar="false" location="1" size="150" window="50,50,500,500" />\n' +
+    '\t\t<view id="70" visible="false" inframe="false" stylebar="true" location="1" size="150" window="50,50,500,500" />\n' +
     '\t</views>\n' +
-    '\t<toolbar show="true" items="0 39 59 || 1 501 5 19 67 72 | 2 15 45 18 , 7 37 | 4 3 8 9 , 13 44 , 58 , 47 || 16 51 64 70 65 | 10 34 53 11 , 24  20 22 , 21 23 | 55 56 57 , 12 || 36 46 , 38 49 50 , 71 | 30 29 54 32 31 33 | 17 26 62 , 14 66 68 | 25 52 60 61 || 40 41 42 , 27 28 35 , 6" />\n' +
-    '\t<input show="true" cmd="true" top="false" />\n' +
+    '\t<toolbar show="true" items="0 39 59 || 1 501 5 19 67 72 | 2 15 45 18 , 7 37 | 4 3 8 9 , 13 44 , 58 , 47 || 16 51 64 70 65 | 10 34 53 11 , 24  20 22 , 21 23 | 55 56 57 , 12 || 36 46 , 38 49 50 , 71 | 30 29 54 32 31 33 | 17 26 62 , 14 66 68 | 25 52 60 61 || 40 41 42 , 27 28 35 , 6" position="1" help="false"/>\n' +
+    '\t<input show="true" cmd="true" top="algebra" />\n' +
+    '\t<dockBar show="true" east="true"/>\n' +
     '</perspective>\n\t</perspectives>\n' +
     '\t<labelingStyle  val="3"/>\n\t<font  size="12"/>\n' +
     '\t<graphicsSettings javaLatexFonts="false"/>\n' +
