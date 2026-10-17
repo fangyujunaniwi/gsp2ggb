@@ -136,7 +136,8 @@ No. Everything runs locally and no file is uploaded.
 | `README.md` / `README_EN.md` | This page — user guide (Chinese / English) |
 | [`Tech_Details.md`](Tech_Details.md) | Technical details: type semantics, container format, ground truth, known limitations, dev tools (**in Chinese**) |
 | [`TYPE_TABLE.md`](TYPE_TABLE.md) | Quick reference for every GSP object type (`tXX`) and binary record (tag) |
-| [`HANDOFF.md`](HANDOFF.md) | Developer hand-off: progress, coverage baseline, next steps (Chinese) |
+| [`HANDOFF.md`](HANDOFF.md) | Project status, architecture, type coverage, limitations and roadmap (Chinese) |
+| [`HISTORY.md`](HISTORY.md) | Round-by-round development history and change log (Chinese, archive) |
 | [`SETUP.md`](SETUP.md) | Deployment: local paths, environment variables, packaging (Chinese) |
 
 ## Disclaimer

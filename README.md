@@ -122,7 +122,8 @@ A：不需要。转换完全在本机进行，不上传任何文件。
 | `README.md` / `README_EN.md` | 本页：面向普通用户的说明（中 / 英） |
 | [`Tech_Details.md`](Tech_Details.md) | 技术细节：类型语义、容器格式、真值来源、已知限制、开发工具（中文） |
 | [`TYPE_TABLE.md`](TYPE_TABLE.md) | 全部 GSP 对象类型（`tXX`）与二进制记录（tag）速查表 |
-| [`HANDOFF.md`](HANDOFF.md) | 开发交接：进度、覆盖率基线、下一步（中文） |
+| [`HANDOFF.md`](HANDOFF.md) | 项目状态、架构、类型覆盖、已知限制与路线图（中文） |
+| [`HISTORY.md`](HISTORY.md) | 逐轮开发历史与变更记录（中文，历史档案） |
 | [`SETUP.md`](SETUP.md) | 部署：本机路径、环境变量、打包交付（中文） |
 
 ## 免责声明

@@ -2,10 +2,10 @@
 
 > 本文件面向**开发者 / 逆向工程**：容器格式、对象类型语义、真值来源、验证方式与已知限制。
 > 面向普通用户的使用说明见 [`README.md`](README.md) / [`README_EN.md`](README_EN.md)；
-> 全部 `tXX` 类型速查见 [`TYPE_TABLE.md`](TYPE_TABLE.md)；开发进度与基线见 [`HANDOFF.md`](HANDOFF.md)。
+> 全部 `tXX` 类型速查见 [`TYPE_TABLE.md`](TYPE_TABLE.md)；项目状态与路线图见 [`HANDOFF.md`](HANDOFF.md)。
 >
 > 文档地图：用户向 = `README.md` / `README_EN.md`｜技术细节 = 本文件｜类型表 = `TYPE_TABLE.md`｜
-> 交接 = `HANDOFF.md`｜部署 = `SETUP.md`。
+> 项目状态 = `HANDOFF.md`｜开发历史 = `HISTORY.md`｜部署 = `SETUP.md`。
 
 ## 目录
 - [架构](#架构)

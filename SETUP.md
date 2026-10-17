@@ -1,4 +1,4 @@
-# 交接与部署说明（SETUP）
+# 部署与交付说明（SETUP）
 
 本文件说明如何把 `gsp2ggb` 搬到**另一台电脑**并跑起来，以及包内包含什么、机器相关路径怎么配。
 
@@ -84,14 +84,15 @@ $env:GGB_EXE = 'C:\Program Files\GeoGebra 5.4\GeoGebra.exe'
 | `README.md` / `README_EN.md` | 面向用户的使用说明（中 / 英）：安装、命令、TUI、常见问题 |
 | `Tech_Details.md` | 技术细节（中文）：架构、容器格式、类型语义、验证、已知限制、工具清单 |
 | `TYPE_TABLE.md` | 全部 GSP 对象类型（`tXX`）速查表 |
-| `HANDOFF.md` | 中文交接说明：当前状态、各轮语义结论、下一步 |
+| `HANDOFF.md` | 项目状态、架构、类型覆盖、已知限制与路线图 |
+| `HISTORY.md` | 逐轮开发历史与变更记录（历史档案） |
 | `SETUP.md` | 本文件 |
 
 **打包时不含**（生成物/临时，可随时重建）：`out/`、`test/out/`、`o.ggb`、`out.xml`。
 
 ---
 
-## 6. 打一个干净的交接包
+## 6. 打一个干净的交付包
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File tools\package.ps1
@@ -102,10 +103,13 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
 
 ---
 
-## 7. 当前状态与验收基线（2026-10-01）
+## 7. 当前状态与验收基线
 
 `.gsp → .ggb`：
 
+- **当前基线（2026-10-18，全树 `1478` 文件 / `407095` 对象）**：
+  **`emitted=311069 rate=76.41%`**；`node tools/emitstats.js <语料目录>` 应复现该数字。
+  以下为历史基线，保留用于追溯（不同口径不可直接比较）。
 - 语料 `1430` 文件、`400149` 对象，可发出 **211364**（覆盖率 **52.82%**，2026-10-02 基线）。
   `node tools/emitstats.js <语料目录>` 应复现该数字。
 - **另一台机 2026-10-01 复测**：同一转换器在全树 `1478` 文件（含 `Samples/`、`Tool Folder/`）上，
