@@ -305,7 +305,11 @@ function dependsOn(fromId, targetId, byId) {
     if (id === targetId) return true;
     if (seen.has(id)) continue; seen.add(id);
     const o = byId.get(id); if (!o) continue;
-    for (const p of o.parents) stack.push(p);
+    // A t32 macro instance is emitted as an alias of parents[0]; its remaining serialised
+    // parents are macro *arguments* and create no edge in the emitted construction.  The
+    // dependency test must therefore follow the emitted graph, or a Locus whose mover is
+    // reachable only through a macro argument is emitted but rejected by GeoGebra.
+    for (const p of (o.srcType === 32 ? o.parents.slice(0, 1) : o.parents)) stack.push(p);
   }
   return false;
 }
