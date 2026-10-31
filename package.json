@@ -1,6 +1,6 @@
 {
   "name": "gsp2ggb",
-  "version": "0.1.0",
+  "version": "0.0.53",
   "private": true,
   "description": "Bidirectional converter between The Geometer's Sketchpad (.gsp) and GeoGebra (.ggb)",
   "bin": {
