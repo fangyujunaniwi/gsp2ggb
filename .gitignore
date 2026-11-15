@@ -1,7 +1,10 @@
 # Generated conversion output and scratch files
 /out/
 /test/out/
+/1out/
 /o.ggb
+/00005.ggb
+/example-33.ggb
 /out.xml
 *.tmp
 
