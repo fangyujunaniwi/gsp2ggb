@@ -51,6 +51,13 @@ const cases = {
     { type: 'point', label: 'P', exp: 'Point(c)' },
     { type: 'point', label: 'Q', exp: 'Point(c)' },
     { type: 'locus', label: 'L', exp: 'Locus(Q,P)' }],
+  // 4) Q is a *deterministic* point derived from a segment that depends on P (midpoint).
+  //    Same "path depends on P" structure as case 2, but Q carries no free parameter.
+  midpoint: [C,
+    { type: 'point', label: 'P', exp: 'Point(c)' },
+    { type: 'segment', label: 's', exp: 'Segment(P,(3,0))' },
+    { type: 'point', label: 'Q', exp: 'Midpoint(s)' },
+    { type: 'locus', label: 'L', exp: 'Locus(Q,P)' }],
 };
 
 for (const [name, defs] of Object.entries(cases)) {

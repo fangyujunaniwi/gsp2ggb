@@ -132,6 +132,8 @@ const WARN_I18N = {
   'locus: mover is not a point on its stated path': 'locus: mover is not a point on its stated path / 轨迹：驱动点不在其路径上',
   'locus of a locus': 'locus of a locus / 轨迹的轨迹(嵌套)',
   'locus: traced point does not depend on the mover': 'locus: traced point does not depend on the mover / 轨迹：被跟踪点不依赖驱动点',
+  'locus: traced point is a free point on a path': 'locus: traced point is a free point on a path (its position is not determined by the mover) / 轨迹：被跟踪点是路径上的自由点（位置不由驱动点决定）',
+  'curve intersection: a Locus argument is rejected by Intersect': 'curve intersection: a Locus argument is rejected by Intersect / 曲线交点：Intersect 不接受 Locus 参数',
   'angle needs 3 points': 'angle needs 3 points / 角需要 3 个点',
   'angle value needs angle parent': 'angle value needs angle parent / 角值需要角父级',
   'length measure needs segment': 'length measure needs segment / 长度测量需要线段',
@@ -159,6 +161,7 @@ const WARN_I18N = {
   'plotXY needs x,y,coordinate system': 'plotXY needs x,y,coordinate system / PlotXY 需要 x,y,坐标系',
   'formula text (t73) is empty': 'formula text (t73) is empty / 公式文本(t73)为空',
   'formula references a segment/circle by value (measure semantics not modelled)': 'formula references a segment/circle by value (measure semantics not modelled) / 公式按值引用线段/圆(度量语义未建模)',
+  'formula references a non-numeric object by value': 'formula references a non-numeric object by value (points/texts/lists are not scalars in GeoGebra) / 公式按值引用了非数值对象（点/文本/列表在 GeoGebra 中不是标量）',
   'text/metric content (tag 2311) not decodable': 'text/metric content (tag 2311) not decodable / 文本/度量内容(2311)无法解码',
   'polygon/button hybrid (not geometry)': 'polygon/button hybrid (not geometry) / 多边形/按钮混合体(非几何)',
   'action button without metadata': 'action button without metadata / 动作按钮缺少元数据',
@@ -224,11 +227,23 @@ function isFunctionObject(o) {
 const MEASURE_GEOM_KINDS = new Set(['segment', 'circleOn', 'circleRadiusObj', 'circleRadiusSeg',
   'circleRadiusPoint', 'arc', 'arcCenter', 'arc3Points', 'polygon', 'line2pt', 'perpLine',
   'parallelLine', 'angleBisector', 'axis']);
+// Kinds that can never act as a scalar in a decoded arithmetic expression.  The decoder emits
+// {#id} bare (it has no x()/y() wrappers), so any geometric reference would make GeoGebra
+// reject the expression; texts and lists are invalid operands as well.
+function nonScalarKind(q) {
+  if (!q) return false;
+  if (q.kind === 'text' || q.kind === 'iterationList' || q.kind === 'iteration') return true;
+  return POINT_KINDS.has(q.kind) || SEG_KINDS.has(q.kind) || LINE_KINDS.has(q.kind) ||
+    CIRC_KINDS.has(q.kind) || q.kind === 'locus' || q.kind === 'arc' || q.kind === 'arcCenter' ||
+    q.kind === 'arc3Points' || q.kind === 'image' || q.kind === 'polygon';
+}
 function decodedRefsUsable(dec, byId) {
   if (!dec || !dec.args) return true;
   for (const id of dec.args) {
     const q = byId.get(id);
-    if (q && MEASURE_GEOM_KINDS.has(q.kind)) return false;
+    if (!q) continue;
+    if (MEASURE_GEOM_KINDS.has(q.kind)) return false;
+    if (nonScalarKind(q)) return false;
   }
   return true;
 }
@@ -297,6 +312,20 @@ function straightBaseKind(obj, byId, depth) {
   while (cur && XFORM_KINDS.has(cur.kind) && guard++ < 16) cur = byId.get(cur.parents[0]);
   return cur ? cur.kind : null;
 }
+// Is this object a *free* point on a path?  Such a point carries its own path parameter, so
+// its position is not determined by any other object.  GeoGebra's Locus(Q,P) therefore
+// rejects it even when Q's host path depends on P (verified with minimal files: a traced
+// `Point(segment)` fails while `Midpoint(segment)` succeeds).  Affine images and macro
+// aliases of a free path point inherit the free parameter.
+function isFreePathPoint(o, byId) {
+  let cur = o, guard = 0;
+  while (cur && guard++ < 16) {
+    if (cur.kind === 'pointOnPath') return true;
+    if (XFORM_KINDS.has(cur.kind) || cur.kind === 'macro') { cur = byId.get(cur.parents[0]); continue; }
+    return false;
+  }
+  return false;
+}
 // Does object `fromId` transitively depend on `targetId`?
 function dependsOn(fromId, targetId, byId) {
   const seen = new Set(); const stack = [fromId];
@@ -350,11 +379,10 @@ function elemTypeOf(o, byId) {
   if (LINE_KINDS.has(o.kind)) return 'line';
   if (CIRC_KINDS.has(o.kind)) return 'conic';
   if (o.kind === 'polygon') return 'polygon';
-  // Arcs and loci are emitted as GeoGebra path/conic objects (Arc(...) / Locus(...)), even
-  // though they are not "circles" in GSP terms.  Treating them as such keeps the transform
-  // and intersection type guards from dropping valid expressions.
-  if (o.kind === 'arc' || o.kind === 'arcCenter' || o.kind === 'arc3Points' || o.kind === 'locus')
-    return 'conic';
+  // Arcs are emitted as GeoGebra conic *parts* (Arc(...)), which Intersect/transforms accept.
+  if (o.kind === 'arc' || o.kind === 'arcCenter' || o.kind === 'arc3Points') return 'conic';
+  // A Locus is a GeoLocus, not a conic: transforms accept it, but Intersect does not.
+  if (o.kind === 'locus') return 'locus';
   // A macro instance is emitted as an alias of its result object.
   if (o.kind === 'macro') return elemTypeOf(byId.get(o.parents[0]), byId);
   if (NUM_KINDS.has(o.kind)) return 'numeric';
@@ -368,7 +396,7 @@ function elemTypeOf(o, byId) {
 // Element types that GeoGebra's transform commands (Translate/Rotate/Dilate/Reflect) accept
 // as a preimage.  Numbers and texts are rejected ("error in <expression>"), and GSP does
 // serialise transforms of measurements, so callers must guard with this set.
-const GEOM_ELEMS = new Set(['point', 'line', 'segment', 'conic', 'image', 'polygon']);
+const GEOM_ELEMS = new Set(['point', 'line', 'segment', 'conic', 'locus', 'image', 'polygon']);
 function isGeomElem(et) { return GEOM_ELEMS.has(et); }
 
 // Resolve the three defining points (A,B,C; B = vertex) of an angle measure used
@@ -1102,6 +1130,8 @@ function planOf(o, byId) {
       {
         const dec = decodedExpr(o);      // free number / parameter: value stored as a constant program
         if (dec) {
+          if (!decodedRefsUsable(dec, byId))
+            return skip('formula references a non-numeric object by value');
           if (usesX(dec.exprTpl) || (plotted && plotted.has(o.id)))
             return { elem: 'function', exprTpl: dec.exprTpl, args: dec.args };
           const cv = constValue(dec.exprTpl);
@@ -1240,7 +1270,7 @@ function planOf(o, byId) {
         const e0 = elemTypeOf(P[0], byId), e1 = elemTypeOf(P[1], byId);
         // A 2-argument Intersect is valid for straight/straight, straight/conic and
         // conic/conic; only points, numbers and texts are rejected by GeoGebra.
-        const bad = e => e === 'numeric' || e === 'text' || e === 'point';
+        const bad = e => e === 'numeric' || e === 'text' || e === 'point' || e === 'locus';
         if (!bad(e0) && !bad(e1))
           return { elem: 'point', exprTpl: 'Intersect(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ')', args: o.parents };
       }
@@ -1249,7 +1279,7 @@ function planOf(o, byId) {
     case 'intersectLC1': case 'intersectLC2': {
       if (P.length === 2) {
         const e0 = elemTypeOf(P[0], byId), e1 = elemTypeOf(P[1], byId);
-        const bad = e => e === 'numeric' || e === 'text';
+        const bad = e => e === 'numeric' || e === 'text' || e === 'locus';
         // Accept any pairing that involves a path/conic object; GeoGebra's indexed
         // Intersect also handles conic-conic.  Reject numbers/texts (never valid here).
         if (!bad(e0) && !bad(e1) && (e0 === 'conic' || e1 === 'conic')) {
@@ -1661,6 +1691,8 @@ function planOf(o, byId) {
       if (P.length < 3) return skip('locus needs traced + path + mover');
       const traced = P[0], mover = P[2];
       if (!isPointish(traced)) return skip('locus: traced object is not a point');
+      if (isFreePathPoint(traced, byId))
+        return skip('locus: traced point is a free point on a path');
       if (!mover || mover.kind !== 'pointOnPath' || mover.parents[0] !== o.parents[1])
         return skip('locus: mover is not a point on its stated path');
       if (o.parents.some(p => { const q = byId.get(p); return q && q.srcType === 35; }))
@@ -1841,6 +1873,9 @@ function planOf(o, byId) {
         return (q && q.srcType === 72 && q.parents && q.parents.length) ? q.parents[0] : id;
       };
       const a = resolve(o.parents[0]), b = resolve(o.parents[1]);
+      // GeoGebra's Intersect accepts functions/lines/conics, but not a GeoLocus.
+      if (elemTypeOf(byId.get(a), byId) === 'locus' || elemTypeOf(byId.get(b), byId) === 'locus')
+        return skip('curve intersection: a Locus argument is rejected by Intersect');
       const k = (byId.sibIndex && byId.sibIndex.get(o.id)) || 1;
       return { elem: 'point', exprTpl: 'Intersect(' + R(a) + ',' + R(b) + ',' + k + ')',
         args: [a, b], warn: 'intersection of a function graph with a path (t98)' };
