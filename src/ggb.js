@@ -350,6 +350,13 @@ function elemTypeOf(o, byId) {
   if (LINE_KINDS.has(o.kind)) return 'line';
   if (CIRC_KINDS.has(o.kind)) return 'conic';
   if (o.kind === 'polygon') return 'polygon';
+  // Arcs and loci are emitted as GeoGebra path/conic objects (Arc(...) / Locus(...)), even
+  // though they are not "circles" in GSP terms.  Treating them as such keeps the transform
+  // and intersection type guards from dropping valid expressions.
+  if (o.kind === 'arc' || o.kind === 'arcCenter' || o.kind === 'arc3Points' || o.kind === 'locus')
+    return 'conic';
+  // A macro instance is emitted as an alias of its result object.
+  if (o.kind === 'macro') return elemTypeOf(byId.get(o.parents[0]), byId);
   if (NUM_KINDS.has(o.kind)) return 'numeric';
   if (o.kind === 'text') return 'text';
   if (o.kind === 'image') return 'image';
@@ -357,6 +364,12 @@ function elemTypeOf(o, byId) {
     return elemTypeOf(byId.get(o.parents[0]), byId);
   return 'point';
 }
+
+// Element types that GeoGebra's transform commands (Translate/Rotate/Dilate/Reflect) accept
+// as a preimage.  Numbers and texts are rejected ("error in <expression>"), and GSP does
+// serialise transforms of measurements, so callers must guard with this set.
+const GEOM_ELEMS = new Set(['point', 'line', 'segment', 'conic', 'image', 'polygon']);
+function isGeomElem(et) { return GEOM_ELEMS.has(et); }
 
 // Resolve the three defining points (A,B,C; B = vertex) of an angle measure used
 // as a transform marker.  Handles a geometric angle (t41/t113), an angle value
@@ -1115,7 +1128,15 @@ function planOf(o, byId) {
       return skip('line needs 2 points');
     case 'midpoint':
       if (P.length === 2) return { elem: 'point', exprTpl: 'Midpoint(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ')', args: o.parents };
-      if (P.length === 1) return { elem: 'point', exprTpl: 'Midpoint(' + R(o.parents[0]) + ')', args: o.parents };
+      if (P.length === 1) {
+        // Midpoint(<object>) is only defined for a segment or a conic (its centre).
+        // GSP also serialises 1-parent midpoint objects over points/lines; GeoGebra rejects
+        // those, so skip them rather than emit an expression that fails to load.
+        const et = elemTypeOf(P[0], byId);
+        if (et === 'segment' || et === 'conic')
+          return { elem: 'point', exprTpl: 'Midpoint(' + R(o.parents[0]) + ')', args: o.parents };
+        return skip('midpoint: single parent is not a segment/conic');
+      }
       return skip('midpoint needs 1-2 parents');
     case 'circleOn':
     case 'circleRadiusSeg':
@@ -1136,9 +1157,16 @@ function planOf(o, byId) {
       return { elem: 'conic', exprTpl: 'Circle(' + R(cId) + ',' + R(rId) + ')', args: [cId, rId],
         warn: (cId === o.parents[1]) ? 'circle centre was the second parent (radius first)' : undefined };
     }
-    case 'perpLine':
-      if (P.length === 2 && isPointish(P[0]) && !isFunctionObject(P[1])) return { elem: 'line', exprTpl: 'PerpendicularLine(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ')', args: o.parents };
-      return skip('perp line: needs a point and a non-function base');
+    case 'perpLine': {
+      // PerpendicularLine(<Point>, <Line|Segment>) — a point / number / text base is rejected
+      // by GeoGebra (GSP does serialise such 1-parent oddities), so guard the base type.
+      if (P.length === 2 && isPointish(P[0])) {
+        const et = elemTypeOf(P[1], byId);
+        if (et === 'line' || et === 'segment')
+          return { elem: 'line', exprTpl: 'PerpendicularLine(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ')', args: o.parents };
+      }
+      return skip('perp line: needs a point and a line/segment base');
+    }
     case 'parallelLine':
       // GeoGebra has no "ParallelLine" command: the parallel through a point is Line(<Point>,<Line>).
       if (P.length === 2 && isPointish(P[0]) && !isFunctionObject(P[1])) return { elem: 'line', exprTpl: 'Line(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ')', args: o.parents };
@@ -1204,23 +1232,42 @@ function planOf(o, byId) {
       return { elem: 'text', exprTpl: '"(" + (' + xv + ') + ", " + (' + yv + ') + ")"',
         warn: 'coordinate-pair readout rendered as dynamic text' };
     }
-    case 'intersectLL':
-      if (P.length === 2) return { elem: 'point', exprTpl: 'Intersect(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ')', args: o.parents };
-      return skip('intersect needs 2 parents');
-    case 'intersectLC1': case 'intersectLC2':
+    case 'intersectLL': {
+      // Intersect(<straight>, <straight>): GSP sometimes serialises an intersection whose
+      // parent is a point/number/text (bad data or a drifted parent id); GeoGebra rejects
+      // Intersect(point, x), so guard both arguments.
       if (P.length === 2) {
-        const idx = o.kind === 'intersectLC1' ? 1 : 2;
-        return { elem: 'point', exprTpl: 'Intersect(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ',' + idx + ')', args: o.parents,
-          warn: 'line-circle root ' + idx + ' (index form unverified)' };
+        const e0 = elemTypeOf(P[0], byId), e1 = elemTypeOf(P[1], byId);
+        // A 2-argument Intersect is valid for straight/straight, straight/conic and
+        // conic/conic; only points, numbers and texts are rejected by GeoGebra.
+        const bad = e => e === 'numeric' || e === 'text' || e === 'point';
+        if (!bad(e0) && !bad(e1))
+          return { elem: 'point', exprTpl: 'Intersect(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ')', args: o.parents };
       }
-      return skip('intersect needs 2 parents');
-    case 'intersectCC1': case 'intersectCC2':
+      return skip('intersect: arguments must not be points/numbers/texts');
+    }
+    case 'intersectLC1': case 'intersectLC2': {
       if (P.length === 2) {
+        const e0 = elemTypeOf(P[0], byId), e1 = elemTypeOf(P[1], byId);
+        const bad = e => e === 'numeric' || e === 'text';
+        // Accept any pairing that involves a path/conic object; GeoGebra's indexed
+        // Intersect also handles conic-conic.  Reject numbers/texts (never valid here).
+        if (!bad(e0) && !bad(e1) && (e0 === 'conic' || e1 === 'conic')) {
+          const idx = o.kind === 'intersectLC1' ? 1 : 2;
+          return { elem: 'point', exprTpl: 'Intersect(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ',' + idx + ')', args: o.parents,
+            warn: 'line-circle root ' + idx + ' (index form unverified)' };
+        }
+      }
+      return skip('line-circle intersect: needs a conic and no numbers/texts');
+    }
+    case 'intersectCC1': case 'intersectCC2': {
+      if (P.length === 2 && elemTypeOf(P[0], byId) === 'conic' && elemTypeOf(P[1], byId) === 'conic') {
         const idx = o.kind === 'intersectCC1' ? 1 : 2;
         return { elem: 'point', exprTpl: 'Intersect(' + R(o.parents[0]) + ',' + R(o.parents[1]) + ',' + idx + ')', args: o.parents,
           warn: 'circle-circle root ' + idx + ' (index form unverified)' };
       }
-      return skip('intersect needs 2 parents');
+      return skip('circle-circle intersect: both parents must be conics');
+    }
     case 'pointOnPath': {
       if (P.length < 1) return skip('point-on-path needs parent');
       const path = P[0], t = (o.params && o.params.length) ? o.params[0] : null;
@@ -1349,26 +1396,34 @@ function planOf(o, byId) {
       }
       return skip('point on unsupported path (falls back nowhere)');
     }
-    case 'translateImage':
-      // Translate(<object>, Vector(<Point>,<Point>)): GSP sometimes points the vector args at
-      // text objects (which emit Vector(text,text), rejected by GeoGebra) — skip those.
-      if (P.length === 3 && P[0] && P[0].kind !== 'text' && P[1] && P[1].kind !== 'text' && P[2] && P[2].kind !== 'text')
-        return { elem: elemTypeOf(o, byId),
-          exprTpl: 'Translate(' + R(o.parents[0]) + ',Vector(' + R(o.parents[1]) + ',' + R(o.parents[2]) + '))',
-          args: o.parents };
-      return skip('translate preimage/vector must not be text');
+    case 'translateImage': {
+      // Translate(<object>, Vector(<Point>,<Point>)): the object must be translatable and both
+      // vector ends must be points.  GSP also serialises e.g. Translate(<number|text>, …) and
+      // Vector(<point>, <segment>), which GeoGebra rejects, so guard the argument types.
+      if (P.length === 3) {
+        const eo = elemTypeOf(P[0], byId);
+        const e1 = elemTypeOf(P[1], byId), e2 = elemTypeOf(P[2], byId);
+        if (isGeomElem(eo) && e1 === 'point' && e2 === 'point')
+          return { elem: elemTypeOf(o, byId),
+            exprTpl: 'Translate(' + R(o.parents[0]) + ',Vector(' + R(o.parents[1]) + ',' + R(o.parents[2]) + '))',
+            args: o.parents };
+      }
+      return skip('translate: needs a translatable object and two point vector ends');
+    }
     case 'rotateImage':
-      if (P.length === 2 && o.params.length >= 3 && P[0] && P[0].kind !== 'text' && P[1] && P[1].kind !== 'text')
+      if (P.length === 2 && o.params.length >= 3 && isGeomElem(elemTypeOf(P[0], byId)) &&
+          elemTypeOf(P[1], byId) === 'point')
         return { elem: elemTypeOf(o, byId),
           exprTpl: 'Rotate(' + R(o.parents[0]) + ',' + fmt(rotateAngleDeg(o)) + '\u00B0,' + R(o.parents[1]) + ')',
           args: o.parents };
-      return skip('rotate preimage/centre must not be text');
+      return skip('rotate: needs a geometric preimage and a point centre');
     case 'dilateImage':
-      if (P.length === 2 && o.params.length >= 1 && P[0] && P[0].kind !== 'text' && P[1] && P[1].kind !== 'text')
+      if (P.length === 2 && o.params.length >= 1 && isGeomElem(elemTypeOf(P[0], byId)) &&
+          elemTypeOf(P[1], byId) === 'point')
         return { elem: elemTypeOf(o, byId),
           exprTpl: 'Dilate(' + R(o.parents[0]) + ',' + fmt(o.params[0]) + ',' + R(o.parents[1]) + ')',
           args: o.parents };
-      return skip('dilation preimage/centre must not be text');
+      return skip('dilate: needs a geometric preimage and a point centre');
     case 'markedAngleRotate':
       // MarkedAngleRotation(center, A, B, C): rotate by the (dynamic) angle ∠ABC.
       if (P.length === 5)
@@ -1389,6 +1444,8 @@ function planOf(o, byId) {
       // MeasuredAngleRotation(center, measure): rotate by the value of an angle
       // measure (t41 angle / t120 angle value, possibly wrapped in a t48 label).
       if (P.length !== 3) return skip('measured-angle rotation needs preimage+center+measure');
+      if (!isGeomElem(elemTypeOf(P[0], byId)))
+        return skip('measured-angle rotation preimage is not a geometric object');
       const mk = byId.get(o.parents[2]);
       const tri = angleTriple(mk, byId);
       if (tri) return { elem: elemTypeOf(o, byId),
@@ -1411,6 +1468,8 @@ function planOf(o, byId) {
       // measurement (Length/Distance/Angle/…).  The center must be a point, otherwise
       // the object is not a DilationMR (some binary t33 records are look-alikes).
       if (P.length !== 3) return skip('marked-ratio dilation needs preimage+center+ratio');
+      if (!isGeomElem(elemTypeOf(P[0], byId)))
+        return skip('marked-ratio dilation preimage is not a geometric object');
       const center = byId.get(o.parents[1]);
       if (!isPointish(center)) return skip('marked-ratio dilation center is not a point');
       const mk = byId.get(o.parents[2]);
@@ -1440,6 +1499,11 @@ function planOf(o, byId) {
       // coordinates, so it is mapped through the SAME scale as a coordinate delta
       // (frame inverse-matrix, or /SCALE with the y-flip) — not used verbatim.
       if (P.length !== 1) return skip('polar translation needs exactly one parent');
+      {
+        const et0 = elemTypeOf(P[0], byId);
+        if (!isGeomElem(et0))
+          return skip('polar translation: preimage is not a translatable object');
+      }
       const raw = o._raw && o._raw.paramRaw;
       const p0 = (o.params || [])[0], p1 = (o.params || [])[1];
       const d1 = raw && raw.length >= 40 ? raw.readDoubleLE(32) : NaN;
@@ -1527,6 +1591,8 @@ function planOf(o, byId) {
     case 'reflectImage': {
       if (P.length !== 2) return skip('reflection needs preimage+mirror');
       const pre = P[0], mir = P[1];
+      if (!isGeomElem(elemTypeOf(pre, byId)))
+        return skip('reflection preimage is not a geometric object');
       // The mirror may be a line (used directly — including affine images of lines),
       // a segment (use its supporting line, incl. transformed segments),
       // or a point (central reflection).
